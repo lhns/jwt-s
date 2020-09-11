@@ -41,21 +41,21 @@ object JwtVerifier {
 
   def apply(key: String,
             algorithms: Seq[JwtAlgorithm] = allAlgorithms): JwtVerifier[JwtAlgorithm, Unit] =
-    new JwtVerifier(algorithms) {
+    new JwtVerifier[JwtAlgorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[JwtAlgorithm]): Option[Unit] =
         if (verify(jwt, key)) Some(()) else None
     }
 
   def hmac(key: SecretKey,
            algorithms: Seq[JwtHmacAlgorithm] = JwtAlgorithm.allHmac()): JwtVerifier[JwtHmacAlgorithm, Unit] =
-    new JwtVerifier(algorithms) {
+    new JwtVerifier[JwtHmacAlgorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[JwtHmacAlgorithm]): Option[Unit] =
         if (verifyHmac(jwt, key)) Some(()) else None
     }
 
   def asymmetric[Algorithm <: JwtAsymmetricAlgorithm](key: PublicKey,
                                                       algorithms: Seq[Algorithm]): JwtVerifier[Algorithm, Unit] =
-    new JwtVerifier(algorithms) {
+    new JwtVerifier[Algorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[Algorithm]): Option[Unit] =
         if (verifyAsymmetric(jwt, key)) Some(()) else None
     }
