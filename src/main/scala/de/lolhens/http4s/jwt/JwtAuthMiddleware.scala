@@ -29,13 +29,13 @@ class JwtAuthMiddleware[Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[Algo
       jwt
 
   val optional: ContextMiddleware[Task, Either[Option[Throwable], (Jwt[Algorithm], A)]] = ContextMiddleware {
-    Kleisli(request => OptionT(Task {
+    Kleisli((request: Request[Task]) => OptionT(Task {
       parseJwt(request).some
     }))
   }
 
   val middleware: AuthMiddleware[Task, (Jwt[Algorithm], A)] = AuthMiddleware {
-    Kleisli(request => OptionT(Task {
+    Kleisli((request: Request[Task]) => OptionT(Task {
       parseJwt(request) match {
         case Right(result) =>
           Some(result)
