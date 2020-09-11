@@ -3,7 +3,7 @@ name := "http4s-jwt-auth"
 version := "0.0.1-SNAPSHOT"
 
 scalaVersion := "2.13.3"
-crossScalaVersions := Seq("2.12.12", scalaVersion.value)
+crossScalaVersions := Seq(scalaVersion.value)
 
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
