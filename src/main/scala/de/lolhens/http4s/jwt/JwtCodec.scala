@@ -5,12 +5,12 @@ import java.time.Clock
 import io.circe.Json
 import io.circe.jawn.{parse => jawnParse}
 import io.circe.syntax._
+import monix.eval.Task
 import pdi.jwt.algorithms.{JwtAsymmetricAlgorithm, JwtHmacAlgorithm}
-import pdi.jwt.exceptions.JwtLengthException
+import pdi.jwt.exceptions.{JwtEmptyAlgorithmException, JwtEmptySignatureException, JwtLengthException, JwtValidationException}
 import pdi.jwt.{Jwt => _, _}
 
-import scala.concurrent.Promise
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtClaim] {
 
@@ -46,23 +46,37 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
 
   def decodeAllAndVerify[A](token: String,
                             options: JwtOptions,
-                            verify: Jwt[JwtAlgorithm] => Option[A]): Try[A] = Try {
-    val (header64, header, claim64, claim, signature) = splitToken(token)
-    val h = parseHeader(header)
-    val c = parseClaim(claim)
-    val result = Promise[A]
-    validate(header64, h, claim64, c, signature, options, { (data, signature, algorithm) =>
-      val jwt = Jwt(algorithm, h, c, data, signature)
-      verify(jwt) match {
-        case Some(e) =>
-          result.success(e)
-          true
+                            verify: Jwt[JwtAlgorithm] => Task[Option[A]]): Task[Try[(Jwt[JwtAlgorithm], Option[A])]] = {
+    val verified: Try[Task[Try[(Jwt[JwtAlgorithm], Option[A])]]] = Try {
+      val (header64, header, claim64, claim, signature64) = splitToken(token)
+      val h = parseHeader(header)
+      val c = parseClaim(claim)
+      val data = JwtUtils.bytify(header64 + "." + claim64)
+      val signature = JwtBase64.decode(signature64)
+      val jwt = Jwt[JwtAlgorithm](h, c, data, signature)
 
-        case None =>
-          false
+      if (options.signature) {
+        val maybeAlgo = extractAlgorithm(h)
+        if (options.signature && signature64.isEmpty) {
+          throw new JwtEmptySignatureException()
+        } else if (maybeAlgo.isEmpty) {
+          throw new JwtEmptyAlgorithmException()
+        } else {
+          verify(jwt).map {
+            case None =>
+              Failure(new JwtValidationException("Invalid signature for this token or wrong algorithm."))
+
+            case Some(verified) =>
+              validateTiming(c, options)
+              Success((jwt, Some(verified)))
+          }
+        }
+      } else {
+        Task.now(Success((jwt, None)))
       }
-    })
-    result.future.value.get.get
+    }
+
+    verified.fold(e => Task.now(Failure(e)), identity)
   }
 }
 

@@ -4,7 +4,7 @@ import de.lolhens.http4s.jwt.JwtValidationOptions._
 import pdi.jwt._
 import pdi.jwt.exceptions.{JwtExpirationException, JwtNotBeforeException, JwtValidationException}
 
-case class JwtValidationOptions(validateSignature: Boolean = true,
+case class JwtValidationOptions(signature: Boolean = true,
                                 validateExpiration: Boolean = true,
                                 validateNotBefore: Boolean = true,
                                 requireIssuer: Boolean = false,
@@ -16,7 +16,7 @@ case class JwtValidationOptions(validateSignature: Boolean = true,
                                 requireJwtId: Boolean = false,
                                 leeway: Long = 0) {
   private[jwt] val jwtOptions: JwtOptions = JwtOptions(
-    signature = validateSignature,
+    signature = signature,
     expiration = validateExpiration,
     notBefore = validateNotBefore,
     leeway = leeway
