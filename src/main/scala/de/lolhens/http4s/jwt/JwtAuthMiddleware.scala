@@ -8,7 +8,7 @@ import org.http4s.AuthScheme.Bearer
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.http4s.server._
-import org.http4s.{AuthedRoutes, HttpRoutes, Request}
+import org.http4s.{AuthedRoutes, ContextRequest, HttpRoutes, Request}
 import org.log4s.getLogger
 import pdi.jwt.JwtAlgorithm
 
@@ -54,6 +54,13 @@ class JwtAuthMiddleware[Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[Algo
 
   def apply(request: AuthedRoutes[(Jwt[Algorithm], Option[A]), Task]): HttpRoutes[Task] =
     middleware(request)
+
+  def flatMap[B](f: (Jwt[Algorithm], Option[A]) => ContextMiddleware[Task, B]): ContextMiddleware[Task, B] = { service =>
+    middleware(Kleisli {
+      case ContextRequest((jwt, verifiedOption), request) =>
+        f(jwt, verifiedOption).apply(service).apply(request)
+    })
+  }
 }
 
 object JwtAuthMiddleware {
