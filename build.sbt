@@ -19,7 +19,6 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "io.monix" %% "monix" % "3.2.2",
   "org.http4s" %% "http4s-blaze-server" % "0.21.7",
   "com.pauldijou" %% "jwt-circe" % "4.3.0",
 )
