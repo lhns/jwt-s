@@ -25,15 +25,16 @@ abstract class JwtVerifier[Algorithm <: JwtAlgorithm, A](val algorithms: Seq[Alg
 
   protected def verified(jwt: Jwt[Algorithm]): Task[Option[A]]
 
-  final protected def verify(jwt: Jwt[Algorithm], key: String): Boolean =
+  final protected def verify(jwt: Jwt[Algorithm],
+                             key: String): Boolean =
     JwtUtils.verify(jwt.data, jwt.signature, key, jwt.algorithm.get)
 
-  final protected def verifyHmac(jwt: Jwt[Algorithm], key: SecretKey)
-                                (implicit ev0: Algorithm <:< JwtHmacAlgorithm): Boolean =
+  final protected def verifyHmac(jwt: Jwt[_ <: JwtHmacAlgorithm],
+                                 key: SecretKey): Boolean =
     JwtUtils.verify(jwt.data, jwt.signature, key, jwt.algorithm.get)
 
-  final protected def verifyAsymmetric(jwt: Jwt[Algorithm], key: PublicKey)
-                                      (implicit ev0: Algorithm <:< JwtAsymmetricAlgorithm): Boolean =
+  final protected def verifyAsymmetric(jwt: Jwt[_ <: JwtAsymmetricAlgorithm],
+                                       key: PublicKey): Boolean =
     JwtUtils.verify(jwt.data, jwt.signature, key, jwt.algorithm.get)
 }
 
