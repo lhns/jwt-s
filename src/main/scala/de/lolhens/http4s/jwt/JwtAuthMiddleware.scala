@@ -56,10 +56,10 @@ class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifie
   def apply(request: AuthedRoutes[(Jwt[Algorithm], Option[A]), F]): HttpRoutes[F] =
     middleware(request)
 
-  def flatMap[B](f: (Jwt[Algorithm], Option[A]) => ContextMiddleware[F, B]): ContextMiddleware[F, B] = { service =>
+  def flatMap[B](f: ((Jwt[Algorithm], Option[A])) => ContextMiddleware[F, B]): ContextMiddleware[F, B] = { service =>
     middleware(Kleisli {
-      case ContextRequest((jwt, verifiedOption), request) =>
-        f(jwt, verifiedOption).apply(service).apply(request)
+      case ContextRequest(context, request) =>
+        f(context).apply(service).apply(request)
     })
   }
 }
