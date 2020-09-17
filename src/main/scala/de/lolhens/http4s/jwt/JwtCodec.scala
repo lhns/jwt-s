@@ -2,10 +2,11 @@ package de.lolhens.http4s.jwt
 
 import java.time.Clock
 
+import cats.Monad
+import cats.syntax.functor._
 import io.circe.Json
 import io.circe.jawn.{parse => jawnParse}
 import io.circe.syntax._
-import monix.eval.Task
 import pdi.jwt.algorithms.{JwtAsymmetricAlgorithm, JwtHmacAlgorithm}
 import pdi.jwt.exceptions.{JwtEmptyAlgorithmException, JwtEmptySignatureException, JwtLengthException, JwtValidationException}
 import pdi.jwt.{Jwt => _, _}
@@ -44,10 +45,11 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
     (parts(0), JwtBase64.decodeString(parts(0)), parts(1), JwtBase64.decodeString(parts(1)), signature)
   }
 
-  def decodeAllAndVerify[A](token: String,
-                            options: JwtOptions,
-                            verify: Jwt[JwtAlgorithm] => Task[Option[A]]): Task[Try[(Jwt[JwtAlgorithm], Option[A])]] = {
-    val verified: Try[Task[Try[(Jwt[JwtAlgorithm], Option[A])]]] = Try {
+  def decodeAllAndVerify[F[_], A](token: String,
+                                  options: JwtOptions,
+                                  verify: Jwt[JwtAlgorithm] => F[Option[A]])
+                                 (implicit F: Monad[F]): F[Try[(Jwt[JwtAlgorithm], Option[A])]] = {
+    val verified: Try[F[Try[(Jwt[JwtAlgorithm], Option[A])]]] = Try {
       val (header64, header, claim64, claim, signature64) = splitToken(token)
       val h = parseHeader(header)
       val c = parseClaim(claim)
@@ -72,11 +74,11 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
           }
         }
       } else {
-        Task.now(Success((jwt, None)))
+        F.pure(Success((jwt, None)))
       }
     }
 
-    verified.fold(e => Task.now(Failure(e)), identity)
+    verified.fold(e => F.pure(Failure(e)), identity)
   }
 }
 

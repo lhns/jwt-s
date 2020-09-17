@@ -1,9 +1,10 @@
 package de.lolhens.http4s.jwt
 
+import cats.Monad
 import cats.data.{EitherT, Kleisli, OptionT}
+import cats.syntax.functor._
 import cats.syntax.option._
 import de.lolhens.http4s.jwt.JwtAuthMiddleware.logger
-import monix.eval.Task
 import org.http4s.AuthScheme.Bearer
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
@@ -12,11 +13,12 @@ import org.http4s.{AuthedRoutes, ContextRequest, HttpRoutes, Request}
 import org.log4s.getLogger
 import pdi.jwt.JwtAlgorithm
 
-class JwtAuthMiddleware[Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[Algorithm, A],
-                                                      options: JwtValidationOptions = JwtValidationOptions.default) {
-  private def parseJwt(request: Request[Task]): Task[Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = {
+class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[F, Algorithm, A],
+                                                            options: JwtValidationOptions = JwtValidationOptions.default)
+                                                           (implicit F: Monad[F]) {
+  private def parseJwt(request: Request[F]): F[Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = {
     (for {
-      token <- EitherT.fromOption[Task](
+      token <- EitherT.fromOption[F](
         for {
           authorization <- request.headers.get(Authorization)
           token <- authorization.credentials match {
@@ -27,18 +29,17 @@ class JwtAuthMiddleware[Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[Algo
         ifNone = None
       )
       jwt <- EitherT {
-        verifier.decode(token, options)
-          .map(_.toEither)
+        verifier.decode(token, options).map(_.toEither)
       }.leftMap(_.some)
     } yield
       jwt).value
   }
 
-  val optional: ContextMiddleware[Task, Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = ContextMiddleware {
+  val optional: ContextMiddleware[F, Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = ContextMiddleware {
     Kleisli(request => OptionT(parseJwt(request).map(_.some)))
   }
 
-  val middleware: AuthMiddleware[Task, (Jwt[Algorithm], Option[A])] = AuthMiddleware {
+  val middleware: AuthMiddleware[F, (Jwt[Algorithm], Option[A])] = AuthMiddleware {
     Kleisli(request => OptionT(parseJwt(request).map {
       case Right(result) =>
         Some(result)
@@ -52,10 +53,10 @@ class JwtAuthMiddleware[Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[Algo
     }))
   }
 
-  def apply(request: AuthedRoutes[(Jwt[Algorithm], Option[A]), Task]): HttpRoutes[Task] =
+  def apply(request: AuthedRoutes[(Jwt[Algorithm], Option[A]), F]): HttpRoutes[F] =
     middleware(request)
 
-  def flatMap[B](f: (Jwt[Algorithm], Option[A]) => ContextMiddleware[Task, B]): ContextMiddleware[Task, B] = { service =>
+  def flatMap[B](f: (Jwt[Algorithm], Option[A]) => ContextMiddleware[F, B]): ContextMiddleware[F, B] = { service =>
     middleware(Kleisli {
       case ContextRequest((jwt, verifiedOption), request) =>
         f(jwt, verifiedOption).apply(service).apply(request)
