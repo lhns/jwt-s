@@ -3,6 +3,7 @@ package de.lolhens.http4s.jwt
 import java.time.Clock
 
 import cats.Monad
+import cats.syntax.either._
 import cats.syntax.functor._
 import io.circe.Json
 import io.circe.jawn.{parse => jawnParse}

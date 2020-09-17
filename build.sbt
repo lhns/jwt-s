@@ -2,9 +2,6 @@ organization := "de.lolhens"
 name := "http4s-jwt-auth"
 version := "0.0.1-SNAPSHOT"
 
-scalaVersion := "2.13.3"
-crossScalaVersions := Seq(scalaVersion.value)
-
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
 homepage := Some(url("https://github.com/LolHens/http4s-jwt-auth"))
@@ -17,6 +14,9 @@ scmInfo := Some(
 developers := List(
   Developer(id = "LolHens", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/LolHens/"))
 )
+
+scalaVersion := "2.13.3"
+crossScalaVersions := Seq("2.12.12", scalaVersion.value)
 
 libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-blaze-server" % "0.21.7",
