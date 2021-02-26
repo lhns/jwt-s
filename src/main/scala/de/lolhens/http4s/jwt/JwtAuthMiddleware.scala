@@ -4,18 +4,19 @@ import cats.Monad
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.syntax.functor._
 import cats.syntax.option._
-import de.lolhens.http4s.jwt.JwtAuthMiddleware.logger
+import com.typesafe.scalalogging.Logger
 import org.http4s.AuthScheme.Bearer
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.http4s.server._
 import org.http4s.{AuthedRoutes, ContextRequest, HttpRoutes, Request}
-import org.log4s.getLogger
 import pdi.jwt.JwtAlgorithm
 
 class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifier[F, Algorithm, A],
                                                             options: JwtValidationOptions = JwtValidationOptions.default)
                                                            (implicit F: Monad[F]) {
+  private val logger = Logger[JwtAuthMiddleware[F, Algorithm, A]]
+
   private def parseJwt(request: Request[F]): F[Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = {
     (for {
       token <- EitherT.fromOption[F](
@@ -45,7 +46,7 @@ class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifie
         Some(result)
 
       case Left(Some(throwable)) =>
-        logger.error(throwable)("JWT authentication failed")
+        logger.error("JWT authentication failed", throwable)
         None
 
       case Left(None) =>
@@ -62,8 +63,4 @@ class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifie
         f(context).apply(service).apply(request)
     })
   }
-}
-
-object JwtAuthMiddleware {
-  private val logger = getLogger("de.lolhens.http4s.jwt-auth")
 }

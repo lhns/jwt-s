@@ -19,6 +19,7 @@ scalaVersion := "2.13.3"
 crossScalaVersions := Seq("2.12.12", scalaVersion.value)
 
 libraryDependencies ++= Seq(
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.http4s" %% "http4s-blaze-server" % "0.21.7",
   "com.pauldijou" %% "jwt-circe" % "4.3.0",
 )
