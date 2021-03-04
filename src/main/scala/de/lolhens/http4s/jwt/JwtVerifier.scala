@@ -12,9 +12,9 @@ import scala.util.Try
 
 abstract class JwtVerifier[F[_], Algorithm <: JwtAlgorithm, A](val algorithms: Seq[Algorithm])
                                                               (implicit F: Monad[F]) {
-  private implicit val `Jwt[Algorithm]`: ClassTag[Jwt[Algorithm]] = implicitly[ClassTag[Jwt[Algorithm]]]
-
   final def decode(token: String, options: JwtValidationOptions): F[Try[(Jwt[Algorithm], Option[A])]] = {
+    val `Jwt[Algorithm]`: ClassTag[Jwt[Algorithm]] = implicitly[ClassTag[Jwt[Algorithm]]]
+
     JwtCodec.decodeAllAndVerify[F, A](token, options.jwtOptions, {
       case `Jwt[Algorithm]`(jwt@Jwt(head, claim, _, _)) if head.algorithm.forall(algorithms.contains) =>
         options.validateRequired(claim)
