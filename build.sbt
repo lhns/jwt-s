@@ -21,7 +21,7 @@ crossScalaVersions := Seq("2.12.13", scalaVersion.value)
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.http4s" %% "http4s-blaze-server" % "0.21.19",
-  "com.pauldijou" %% "jwt-circe" % "5.0.0",
+  "com.github.jwt-scala" %% "jwt-circe" % "6.0.0",
 )
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
