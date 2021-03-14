@@ -16,7 +16,7 @@ developers := List(
 )
 
 scalaVersion := "2.13.5"
-crossScalaVersions := Seq("2.12.12", scalaVersion.value)
+crossScalaVersions := Seq("2.12.13", scalaVersion.value)
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
