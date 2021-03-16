@@ -2,6 +2,11 @@ organization := "de.lolhens"
 name := "http4s-jwt-auth"
 version := "0.0.1-SNAPSHOT"
 
+scalaVersion := "2.13.5"
+crossScalaVersions := Seq("2.12.13", scalaVersion.value)
+
+ThisBuild / versionScheme := Some("early-semver")
+
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
 homepage := Some(url("https://github.com/LolHens/http4s-jwt-auth"))
@@ -14,9 +19,6 @@ scmInfo := Some(
 developers := List(
   Developer(id = "LolHens", name = "Pierre Kisters", email = "pierrekisters@gmail.com", url = url("https://github.com/LolHens/"))
 )
-
-scalaVersion := "2.13.5"
-crossScalaVersions := Seq("2.12.13", scalaVersion.value)
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
