@@ -38,6 +38,7 @@ project/plugins/project/
 .history
 .cache
 .lib/
+.bsp/
 
 ## sbt-hackling
 libling/
