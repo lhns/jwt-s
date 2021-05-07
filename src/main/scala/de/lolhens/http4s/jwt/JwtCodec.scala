@@ -1,9 +1,6 @@
 package de.lolhens.http4s.jwt
 
-import java.time.Clock
-
 import cats.Monad
-import cats.syntax.either._
 import cats.syntax.functor._
 import io.circe.Json
 import io.circe.jawn.{parse => jawnParse}
@@ -12,6 +9,7 @@ import pdi.jwt.algorithms.{JwtAsymmetricAlgorithm, JwtHmacAlgorithm}
 import pdi.jwt.exceptions.{JwtEmptyAlgorithmException, JwtEmptySignatureException, JwtLengthException, JwtValidationException}
 import pdi.jwt.{Jwt => _, _}
 
+import java.time.Clock
 import scala.util.{Failure, Success, Try}
 
 class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtClaim] {
