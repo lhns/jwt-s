@@ -1,6 +1,10 @@
 organization := "de.lolhens"
 name := "http4s-jwt-auth"
-version := "0.0.1-SNAPSHOT"
+version := {
+  val Tag = "refs/tags/(.*)".r
+  sys.env.get("CI_VERSION").collect { case Tag(tag) => tag }
+    .getOrElse("0.0.1-SNAPSHOT")
+}
 
 scalaVersion := "2.13.5"
 crossScalaVersions := Seq("2.12.13", scalaVersion.value)
@@ -29,11 +33,6 @@ libraryDependencies ++= Seq(
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
 Compile / doc / sources := Seq.empty
-
-version := {
-  val tagPrefix = "refs/tags/"
-  sys.env.get("CI_VERSION").filter(_.startsWith(tagPrefix)).map(_.drop(tagPrefix.length)).getOrElse(version.value)
-}
 
 publishMavenStyle := true
 
