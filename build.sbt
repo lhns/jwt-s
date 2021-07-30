@@ -6,8 +6,8 @@ version := {
     .getOrElse("0.0.1-SNAPSHOT")
 }
 
-scalaVersion := "2.13.5"
-crossScalaVersions := Seq("2.12.13", scalaVersion.value)
+scalaVersion := "2.13.6"
+crossScalaVersions := Seq("2.12.14", scalaVersion.value)
 
 ThisBuild / versionScheme := Some("early-semver")
 
@@ -25,9 +25,9 @@ developers := List(
 )
 
 libraryDependencies ++= Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
-  "org.http4s" %% "http4s-server" % "1.0.0-M21",
-  "com.github.jwt-scala" %% "jwt-circe" % "7.1.4",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
+  "org.http4s" %% "http4s-server" % "0.23.0",
+  "com.github.jwt-scala" %% "jwt-circe" % "8.0.3",
 )
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
