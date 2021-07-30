@@ -21,7 +21,7 @@ class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifie
     (for {
       token <- EitherT.fromOption[F](
         for {
-          authorization <- request.headers.get(Authorization)
+          authorization <- request.headers.get[Authorization]
           token <- authorization.credentials match {
             case Token(Bearer, token) => Some(token)
             case _ => None
