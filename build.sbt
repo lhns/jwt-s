@@ -26,7 +26,7 @@ developers := List(
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
-  "org.http4s" %% "http4s-server" % "0.23.3",
+  "org.http4s" %% "http4s-server" % "0.23.4",
   "com.github.jwt-scala" %% "jwt-circe" % "9.0.1",
 )
 
