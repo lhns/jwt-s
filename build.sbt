@@ -13,7 +13,7 @@ ThisBuild / versionScheme := Some("early-semver")
 
 licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
 
-homepage := Some(url("https://github.com/LolHens/http4s-jwt-auth"))
+homepage := scmInfo.value.map(_.browseUrl)
 scmInfo := Some(
   ScmInfo(
     url("https://github.com/LolHens/http4s-jwt-auth"),
