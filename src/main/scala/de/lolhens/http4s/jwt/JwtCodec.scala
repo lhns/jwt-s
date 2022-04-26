@@ -72,8 +72,9 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
               Failure(new JwtValidationException("Invalid signature for this token or wrong algorithm."))
 
             case Right(Some(verified)) =>
-              validateTiming(c, options)
-              Success((jwt, Some(verified)))
+              validateTiming(c, options).map { _ =>
+                (jwt, Some(verified))
+              }
           }
         }
       } else {
