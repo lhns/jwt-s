@@ -1,6 +1,6 @@
 package de.lolhens.http4s.jwt
 
-import cats.Monad
+import cats.MonadThrow
 import cats.syntax.functor._
 import pdi.jwt.algorithms.{JwtAsymmetricAlgorithm, JwtECDSAAlgorithm, JwtHmacAlgorithm, JwtRSAAlgorithm}
 import pdi.jwt.{JwtAlgorithm, JwtUtils}
@@ -11,7 +11,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 abstract class JwtVerifier[F[_], Algorithm <: JwtAlgorithm, A](val algorithms: Seq[Algorithm])
-                                                              (implicit F: Monad[F]) {
+                                                              (implicit F: MonadThrow[F]) {
   final def decode(token: String, options: JwtValidationOptions): F[Try[(Jwt[Algorithm], Option[A])]] = {
     val `Jwt[Algorithm]`: ClassTag[Jwt[Algorithm]] = implicitly[ClassTag[Jwt[Algorithm]]]
 
@@ -49,7 +49,7 @@ object JwtVerifier {
 
   def apply[F[_]](key: String,
                   algorithms: Seq[JwtAlgorithm] = allAlgorithms)
-                 (implicit F: Monad[F]): JwtVerifier[F, JwtAlgorithm, Unit] =
+                 (implicit F: MonadThrow[F]): JwtVerifier[F, JwtAlgorithm, Unit] =
     new JwtVerifier[F, JwtAlgorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[JwtAlgorithm]): F[Option[Unit]] =
         F.pure(if (verify(jwt, key)) Some(()) else None)
@@ -57,7 +57,7 @@ object JwtVerifier {
 
   def hmac[F[_]](key: SecretKey,
                  algorithms: Seq[JwtHmacAlgorithm] = JwtAlgorithm.allHmac())
-                (implicit F: Monad[F]): JwtVerifier[F, JwtHmacAlgorithm, Unit] =
+                (implicit F: MonadThrow[F]): JwtVerifier[F, JwtHmacAlgorithm, Unit] =
     new JwtVerifier[F, JwtHmacAlgorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[JwtHmacAlgorithm]): F[Option[Unit]] =
         F.pure(if (verifyHmac(jwt, key)) Some(()) else None)
@@ -65,23 +65,23 @@ object JwtVerifier {
 
   def asymmetric[F[_], Algorithm <: JwtAsymmetricAlgorithm](key: PublicKey,
                                                             algorithms: Seq[Algorithm])
-                                                           (implicit F: Monad[F]): JwtVerifier[F, Algorithm, Unit] =
+                                                           (implicit F: MonadThrow[F]): JwtVerifier[F, Algorithm, Unit] =
     new JwtVerifier[F, Algorithm, Unit](algorithms) {
       override protected def verified(jwt: Jwt[Algorithm]): F[Option[Unit]] =
         F.pure(if (verifyAsymmetric(jwt, key)) Some(()) else None)
     }
 
   def asymmetric[F[_]](key: PublicKey)
-                      (implicit F: Monad[F]): JwtVerifier[F, JwtAsymmetricAlgorithm, Unit] =
+                      (implicit F: MonadThrow[F]): JwtVerifier[F, JwtAsymmetricAlgorithm, Unit] =
     asymmetric(key, JwtAlgorithm.allAsymmetric())
 
   def rsa[F[_]](key: PublicKey,
                 algorithms: Seq[JwtRSAAlgorithm] = JwtAlgorithm.allRSA())
-               (implicit F: Monad[F]): JwtVerifier[F, JwtRSAAlgorithm, Unit] =
+               (implicit F: MonadThrow[F]): JwtVerifier[F, JwtRSAAlgorithm, Unit] =
     asymmetric(key, algorithms)
 
   def ecdsa[F[_]](key: PublicKey,
                   algorithms: Seq[JwtECDSAAlgorithm] = JwtAlgorithm.allECDSA())
-                 (implicit F: Monad[F]): JwtVerifier[F, JwtECDSAAlgorithm, Unit] =
+                 (implicit F: MonadThrow[F]): JwtVerifier[F, JwtECDSAAlgorithm, Unit] =
     asymmetric(key, algorithms)
 }

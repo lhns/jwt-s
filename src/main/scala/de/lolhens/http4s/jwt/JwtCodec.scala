@@ -1,7 +1,7 @@
 package de.lolhens.http4s.jwt
 
-import cats.Monad
-import cats.syntax.either._
+import cats.MonadThrow
+import cats.syntax.applicativeError._
 import cats.syntax.functor._
 import io.circe.Json
 import io.circe.jawn.{parse => jawnParse}
@@ -48,7 +48,7 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
   def decodeAllAndVerify[F[_], A](token: String,
                                   options: JwtOptions,
                                   verify: Jwt[JwtAlgorithm] => F[Option[A]])
-                                 (implicit F: Monad[F]): F[Try[(Jwt[JwtAlgorithm], Option[A])]] = {
+                                 (implicit F: MonadThrow[F]): F[Try[(Jwt[JwtAlgorithm], Option[A])]] = {
     val verified: Try[F[Try[(Jwt[JwtAlgorithm], Option[A])]]] = Try {
       val (header64, header, claim64, claim, signature64) = splitToken(token)
       val h = parseHeader(header)
@@ -64,11 +64,14 @@ class JwtCodec(override val clock: Clock) extends JwtCirceParser[JwtHeader, JwtC
         } else if (maybeAlgo.isEmpty) {
           throw new JwtEmptyAlgorithmException()
         } else {
-          verify(jwt).map {
-            case None =>
+          verify(jwt).attempt.map {
+            case Left(error) =>
+              Failure(error)
+
+            case Right(None) =>
               Failure(new JwtValidationException("Invalid signature for this token or wrong algorithm."))
 
-            case Some(verified) =>
+            case Right(Some(verified)) =>
               validateTiming(c, options)
               Success((jwt, Some(verified)))
           }
