@@ -27,7 +27,7 @@ developers := List(
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
   "org.http4s" %% "http4s-server" % "0.23.14",
-  "com.github.jwt-scala" %% "jwt-circe" % "9.0.6",
+  "com.github.jwt-scala" %% "jwt-circe" % "9.0.5",
 )
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
