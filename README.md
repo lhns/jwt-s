@@ -11,7 +11,7 @@ JWT authentication middleware for http4s
 ### build.sbt
 ```sbt
 // use this snippet for http4s 0.23
-libraryDependencies += "de.lhns" %% "http4s-jwt-auth" % "0.4.2"
+libraryDependencies += "de.lhns" %% "http4s-jwt-auth" % "0.4.3"
 ```
 
 ## License
