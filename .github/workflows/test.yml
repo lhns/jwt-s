@@ -21,7 +21,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'sbt'
-          gpg-private-key: ${{ secrets.PGP_PRIVATE_KEY }}
 
       - name: Run tests
         run: sbt "+ test"
