@@ -17,39 +17,38 @@ class JwtAuthMiddleware[F[_], Algorithm <: JwtAlgorithm, A](verifier: JwtVerifie
                                                            (implicit F: Monad[F]) {
   private val logger = Logger[JwtAuthMiddleware[F, Algorithm, A]]
 
-  private def parseJwt(request: Request[F]): F[Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = {
+  def authenticate(request: Request[F]): F[Option[Either[Throwable, (Jwt[Algorithm], Option[A])]]] = {
     (for {
-      token <- EitherT.fromOption[F](
+      token <- OptionT.fromOption[F](
         for {
           authorization <- request.headers.get[Authorization]
           token <- authorization.credentials match {
             case Token(Bearer, token) => Some(token)
             case _ => None
           }
-        } yield token,
-        ifNone = None
+        } yield token
       )
-      jwt <- EitherT {
+      jwtOrError <- OptionT.liftF {
         verifier.decode(token, options).map(_.toEither)
-      }.leftMap(_.some)
+      }
     } yield
-      jwt).value
+      jwtOrError).value
   }
 
-  val optional: ContextMiddleware[F, Either[Option[Throwable], (Jwt[Algorithm], Option[A])]] = ContextMiddleware {
-    Kleisli(request => OptionT(parseJwt(request).map(_.some)))
+  val optional: ContextMiddleware[F, Option[Either[Throwable, (Jwt[Algorithm], Option[A])]]] = ContextMiddleware {
+    Kleisli(request => OptionT.liftF(authenticate(request)))
   }
 
   val middleware: AuthMiddleware[F, (Jwt[Algorithm], Option[A])] = AuthMiddleware {
-    Kleisli(request => OptionT(parseJwt(request).map {
-      case Right(result) =>
+    Kleisli(request => OptionT(authenticate(request).map {
+      case Some(Right(result)) =>
         Some(result)
 
-      case Left(Some(throwable)) =>
+      case Some(Left(throwable)) =>
         logger.error("JWT authentication failed", throwable)
         None
 
-      case Left(None) =>
+      case None =>
         None
     }))
   }
