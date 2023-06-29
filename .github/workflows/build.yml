@@ -1,11 +1,17 @@
-name: publish
+name: build
 
 on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
   release:
-    types: [published]
+    types:
+      - published
 
 jobs:
-  publish:
+  build:
 
     runs-on: ubuntu-latest
 
@@ -19,12 +25,20 @@ jobs:
           cache: 'sbt'
           gpg-private-key: ${{ secrets.PGP_PRIVATE_KEY }}
 
+      - name: Test
+        env:
+          CI_VERSION: ${{ github.ref }}
+          SBT_OPTS: '-Xmx2G'
+        run: sbt "; test"
+
       - name: Publish
+        if: github.event_name == 'release'
         env:
           CI_VERSION: ${{ github.ref }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SBT_OPTS: '-Xmx2G'
         run: |
-          sbt "; test; sonatypeBundleClean; publishSigned; sonatypeBundleRelease"
+          sbt "; sonatypeBundleClean; publishSigned; sonatypeBundleRelease"
           sed -i -e 's/organization := "de.lhns"/organization := "de.lolhens"/' build.sbt
           sbt "; sonatypeBundleClean; publishSigned; sonatypeBundleRelease"
