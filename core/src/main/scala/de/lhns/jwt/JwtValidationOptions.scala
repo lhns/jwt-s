@@ -1,7 +1,7 @@
 package de.lhns.jwt
 
-import de.lhns.jwt.JwtValidationOptions.*
-import pdi.jwt.*
+import de.lhns.jwt.JwtValidationOptions._
+import pdi.jwt._
 import pdi.jwt.exceptions.{JwtExpirationException, JwtNotBeforeException, JwtValidationException}
 
 case class JwtValidationOptions(signature: Boolean = true,

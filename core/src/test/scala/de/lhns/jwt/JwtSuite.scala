@@ -1,9 +1,11 @@
 package de.lhns.jwt
 
 import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
 import munit.FunSuite
 
+import java.util.Base64
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 import scala.util.Random
@@ -17,14 +19,10 @@ class JwtSuite extends FunSuite {
     println(jwt)
     println(jwt.encode)
     val bytes: Array[Byte] = Random.nextBytes(20)
+    println("secret " + Base64.getUrlEncoder.withoutPadding.encodeToString(bytes))
     val secretKey: SecretKey = new SecretKeySpec(bytes, "HmacSHA256")
-    implicit val signer = new JwtSigner[IO, JwtAlgorithm.HS256.type] {
-      override type Key = SecretKey
-
-      override def sign(jwt: Jwt, algorithm: JwtAlgorithm.HS256.type, key: Key): IO[Jwt.SignedJwt] =
-        IO(Jwt.SignedJwt(jwt, Array.empty))
-    }
-
-    println(jwt.sign[IO, JwtAlgorithm.HS256.type](JwtAlgorithm.HS256).apply(secretKey))
+    val signedJwt = jwt.sign[IO](JwtAlgorithm.HS256, secretKey).unsafeRunSync()(IORuntime.global)
+    println(signedJwt.encode)
+    println(signedJwt.verify[IO](JwtAlgorithm.HS256, secretKey).unsafeRunSync()(IORuntime.global))
   }
 }

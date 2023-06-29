@@ -1,10 +1,10 @@
 package de.lhns.jwt
 
-import cats.syntax.bifunctor.*
-import cats.syntax.either.*
-import de.lhns.jwt.Jwt.*
+import cats.syntax.bifunctor._
+import cats.syntax.either._
+import de.lhns.jwt.Jwt._
 import de.lhns.jwt.Jwt.SignedJwt.VerifyPartiallyApplied
-import io.circe.syntax.*
+import io.circe.syntax._
 import io.circe.{Codec, Decoder, Encoder, Json}
 import scodec.bits.Bases.Alphabets.Base64Url
 import scodec.bits.ByteVector
@@ -14,8 +14,24 @@ import java.time.Instant
 import java.util.Base64
 import scala.collection.immutable.ListMap
 
-case class Jwt(header: JwtHeader,
-               payload: JwtPayload) {
+case class Jwt(
+                header: JwtHeader,
+                payload: JwtPayload,
+                headerBase64: Option[String],
+                payloadBase64: Option[String]
+              ) {
+  def copy(
+            header: JwtHeader = header,
+            payload: JwtPayload = payload,
+            headerBase64: Option[String] = None,
+            payloadBase64: Option[String] = None
+          ): Jwt = new Jwt(
+    header = header,
+    payload = payload,
+    headerBase64 = headerBase64,
+    payloadBase64 = payloadBase64
+  )
+
   def withHeader(header: JwtHeader): Jwt = copy(header = header)
 
   def withPayload(payload: JwtPayload): Jwt = copy(payload = payload)
@@ -24,15 +40,33 @@ case class Jwt(header: JwtHeader,
 
   def changePayload(f: JwtPayload => JwtPayload): Jwt = withPayload(f(payload))
 
-  def encode: String = List[String](header.encode, payload.encode).mkString(".")
+  def encode: String = List[String](
+    headerBase64.getOrElse(header.encode),
+    payloadBase64.getOrElse(payload.encode)
+  ).mkString(".")
 
-  def sign[F[_], Algorithm <: JwtAlgorithm](algorithm: Algorithm)(implicit signer: JwtSigner[F, Algorithm]): SignPartiallyApplied[F, Algorithm] =
-    new SignPartiallyApplied[F, Algorithm](this, algorithm, signer)
+  def sign[F[_]]: SignPartiallyApplied[F] =
+    new SignPartiallyApplied[F](this)
 }
 
 object Jwt {
-  class SignPartiallyApplied[F[_], Algorithm <: JwtAlgorithm](jwt: Jwt, algorithm: Algorithm, val signer: JwtSigner[F, Algorithm]) {
-    def apply(key: signer.Key): F[SignedJwt] =
+  def apply(
+             header: JwtHeader,
+             payload: JwtPayload
+           ): Jwt = new Jwt(
+    header = header,
+    payload = payload,
+    headerBase64 = None,
+    payloadBase64 = None
+  )
+
+  class SignPartiallyApplied[F[_]](jwt: Jwt) {
+    def apply[Algorithm <: JwtAlgorithm, Key](
+                                               algorithm: Algorithm,
+                                               key: Key
+                                             )(
+                                               implicit signer: JwtSigner[F, Algorithm, Key]
+                                             ): F[SignedJwt] =
       signer.sign(jwt.changeHeader(_.withAlgorithm(Some(algorithm))), algorithm, key)
   }
 
@@ -142,27 +176,13 @@ object Jwt {
     )
   }
 
-  case class SignedJwt private(
-                                jwt: Jwt,
-                                signature: Array[Byte],
-                                headerBase64: Option[String],
-                                payloadBase64: Option[String]
-                              ) {
+  case class SignedJwt(
+                        jwt: Jwt,
+                        signature: Array[Byte]
+                      ) {
     def header: JwtHeader = jwt.header
 
     def payload: JwtPayload = jwt.payload
-
-    private def copy(
-                      jwt: Jwt,
-                      signature: Array[Byte],
-                      headerBase64: Option[String],
-                      payloadBase64: Option[String]
-                    ): SignedJwt = new SignedJwt(
-      jwt = jwt,
-      signature = signature,
-      headerBase64 = headerBase64,
-      payloadBase64 = payloadBase64
-    )
 
     def copy(
               header: JwtHeader = jwt.header,
@@ -188,27 +208,21 @@ object Jwt {
 
     def encode: String = List[String](jwt.encode, encodeBase64Url(signature)).mkString(".")
 
-    def verify[F[_], Algorithm <: JwtAlgorithm](algorithm: Algorithm)(implicit verifier: JwtVerifier[F, Algorithm]): VerifyPartiallyApplied[F, Algorithm] =
-      new VerifyPartiallyApplied[F, Algorithm](this, algorithm, verifier)
+    def verify[F[_]]: VerifyPartiallyApplied[F] =
+      new VerifyPartiallyApplied[F](this)
   }
 
   object SignedJwt {
-    class VerifyPartiallyApplied[F[_], Algorithm <: JwtAlgorithm](jwt: SignedJwt,
-                                                                  algorithm: Algorithm,
-                                                                  val verifier: JwtVerifier[F, Algorithm]) {
-      def apply(key: verifier.Key, options: JwtValidationOptions = JwtValidationOptions.default): F[Either[Throwable, Jwt]] =
+    class VerifyPartiallyApplied[F[_]](jwt: SignedJwt) {
+      def apply[Algorithm <: JwtAlgorithm, Key](
+                                                 algorithm: Algorithm,
+                                                 key: Key,
+                                                 options: JwtValidationOptions = JwtValidationOptions.default
+                                               )(
+                                                 implicit verifier: JwtVerifier[F, Algorithm, Key]
+                                               ): F[Either[Throwable, Jwt]] =
         verifier.verify(jwt.changeHeader(_.withAlgorithm(Some(algorithm))), algorithm, key, options)
     }
-
-    def apply(
-               jwt: Jwt,
-               signature: Array[Byte]
-             ): SignedJwt = new SignedJwt(
-      jwt = jwt,
-      signature = signature,
-      headerBase64 = None,
-      payloadBase64 = None
-    )
 
     def apply(
                header: JwtHeader,
@@ -230,9 +244,7 @@ object Jwt {
             signature <- decodeBase64Url(signatureBase64)
           } yield SignedJwt(
             jwt = jwt,
-            signature = signature,
-            headerBase64 = Some(headerBase64),
-            payloadBase64 = Some(payloadBase64)
+            signature = signature
           )
 
         case _ =>
@@ -273,6 +285,8 @@ object Jwt {
       _ <- header.typOption.filter(_ == "JWT").toRight(new IllegalArgumentException("typ must be `JWT`"))
     } yield Jwt(
       header = header,
-      payload = payload
+      payload = payload,
+      headerBase64 = Some(headerBase64),
+      payloadBase64 = Some(payloadBase64)
     )
 }
