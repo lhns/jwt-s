@@ -1,7 +1,7 @@
-package de.lolhens.http4s.jwt
+package de.lhns.jwt
 
-import de.lolhens.http4s.jwt.JwtValidationOptions._
-import pdi.jwt._
+import de.lhns.jwt.JwtValidationOptions.*
+import pdi.jwt.*
 import pdi.jwt.exceptions.{JwtExpirationException, JwtNotBeforeException, JwtValidationException}
 
 case class JwtValidationOptions(signature: Boolean = true,
