@@ -1,7 +1,6 @@
 package de.lhns.jwt
 
 import cats.effect.Async
-import de.lhns.jwt.Jwt.SignedJwt
 import de.lhns.jwt.JwtAlgorithm.{JwtAsymmetricAlgorithm, JwtHmacAlgorithm}
 import pdi.jwt.JwtUtils
 
