@@ -4,10 +4,14 @@ import cats.syntax.either._
 import de.lhns.jwt.Jwt._
 import io.circe.syntax._
 import io.circe.{Codec, Decoder, Encoder, Json}
+import sun.security.provider.certpath.X509CertPath
 
+import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
+import java.security.cert.{CertPath, CertificateFactory, X509Certificate}
 import java.time.Instant
 import scala.collection.immutable.ListMap
+import scala.jdk.CollectionConverters._
 
 final case class Jwt(
                       header: JwtHeader,
@@ -91,11 +95,19 @@ object Jwt {
 
     def withX509Url(x509Url: Option[String]): Self = withClaim("x5u", x509Url)
 
-    lazy val x509CertificateChain: Option[Seq[Array[Byte]]] =
-      claim[Seq[String]]("x5c").map(_.map(decodeBase64(_).valueOr(throw _)))
+    lazy val x509CertificateChain: Option[X509CertPath] = {
+      lazy val certificateFactory = CertificateFactory.getInstance("X509")
+      claim[Seq[String]]("x5c").map { elems =>
+        new X509CertPath(elems.map(decodeBase64(_).map { bytes =>
+          certificateFactory
+            .generateCertificate(new ByteArrayInputStream(bytes))
+            .asInstanceOf[X509Certificate]
+        }.valueOr(throw _)).asJava)
+      }
+    }
 
-    def withX509CertificateChain(x509CertificateChain: Option[Seq[Array[Byte]]]): Self =
-      withClaim("x5c", x509CertificateChain.map(_.map(encodeBase64Padded)))
+    def withX509CertificateChain(x509CertificateChain: Option[X509CertPath]): Self =
+      withClaim("x5c", x509CertificateChain.map(_.getCertificates.asScala.map(cert => encodeBase64Padded(cert.getEncoded)).toSeq))
 
     lazy val x509CertificateSha1Thumbprint: Option[Array[Byte]] =
       claim[String]("x5t").map(decodeBase64Url(_).valueOr(throw _))
