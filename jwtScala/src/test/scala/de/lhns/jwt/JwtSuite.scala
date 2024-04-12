@@ -15,7 +15,7 @@ import javax.crypto.spec.SecretKeySpec
 import scala.collection.immutable.ListMap
 import scala.util.Random
 import scala.jdk.CollectionConverters._
-import JwtScalaImpl._
+import de.lhns.jwt.jwtscala.JwtScalaImpl._
 import cats.syntax.all._
 import de.lhns.jwt.JwtAlgorithm.JwtAsymmetricAlgorithm
 

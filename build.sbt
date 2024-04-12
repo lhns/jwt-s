@@ -7,8 +7,10 @@ name := (core.projectRefs.head / name).value
 
 val V = new {
   val betterMonadicFor = "0.3.1"
-  val http4s = "0.23.22"
-  val jwtCirce = "9.4.0"
+  val catsEffect = "3.5.4"
+  val circe = "0.14.6"
+  val http4s = "0.23.26"
+  val jwtScala = "10.0.0"
   val logbackClassic = "1.4.8"
   val munit = "0.7.29"
   val munitTaglessFinal = "0.2.0"
@@ -92,16 +94,29 @@ lazy val root: Project =
       publish / skip := true
     )
     .aggregate(core.projectRefs: _*)
+    .aggregate(jwtScala.projectRefs: _*)
 
 lazy val core = projectMatrix.in(file("core"))
   .settings(commonSettings)
   .settings(
-    name := "http4s-jwt-auth",
+    name := "jwt-s",
 
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % V.scalaLogging,
-      "org.http4s" %% "http4s-server" % V.http4s,
-      "com.github.jwt-scala" %% "jwt-circe" % V.jwtCirce,
+      "io.circe" %% "circe-generic" % V.circe,
+      "io.circe" %% "circe-parser" % V.circe,
+      "org.typelevel" %% "cats-effect" % V.catsEffect,
+    ),
+  )
+  .jvmPlatform(scalaVersions)
+
+lazy val jwtScala = projectMatrix.in(file("jwtScala"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "jwt-s-jwt-scala",
+
+    libraryDependencies ++= Seq(
+      "com.github.jwt-scala" %% "jwt-core" % V.jwtScala,
     ),
   )
   .jvmPlatform(scalaVersions)

@@ -1,13 +1,14 @@
 package de.lhns.jwt
 
+import cats.effect.Clock
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
 import de.lhns.jwt.SignedJwt.VerifyPartiallyApplied
 import io.circe.{Codec, Decoder, Encoder}
 
 final case class SignedJwt(
-                      jwt: Jwt,
-                      signature: Array[Byte]
-                    ) {
+                            jwt: Jwt,
+                            signature: Array[Byte]
+                          ) {
   def header: JwtHeader = jwt.header
 
   def payload: JwtPayload = jwt.payload
@@ -55,8 +56,9 @@ object SignedJwt {
                                                algorithm: Algorithm,
                                                key: Key,
                                                options: JwtValidationOptions = JwtValidationOptions.default
-                                             )(
-                                               implicit verifier: JwtVerifier[F, Algorithm, Key]
+                                             )(implicit
+                                               verifier: JwtVerifier[F, Algorithm, Key],
+                                               clock: Clock[F]
                                              ): F[Either[Throwable, Jwt]] =
       verifier.verify(jwt.modifyHeader(_.withAlgorithm(Some(algorithm))), algorithm, key, options)
   }
