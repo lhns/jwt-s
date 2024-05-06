@@ -75,24 +75,27 @@ object SignedJwt {
     signature = signature
   )
 
+  implicit val codec: Codec[SignedJwt] = Codec.from(
+    Decoder[String].emapTry(SignedJwt.decode(_).toTry),
+    Encoder[String].contramap(_.encode)
+  )
+
+  def decodeComponents(headerBase64: String, payloadBase64: String, signatureBase64: String): Either[Throwable, SignedJwt] =
+    for {
+      jwt <- Jwt.decodeComponents(headerBase64, payloadBase64)
+      signature <- decodeBase64Url(signatureBase64)
+    } yield SignedJwt(
+      jwt = jwt,
+      signature = signature
+    )
+
   def decode(string: String): Either[Throwable, SignedJwt] = {
     string.split('.').toList match {
       case headerBase64 +: payloadBase64 +: signatureBase64 +: Nil =>
-        for {
-          jwt <- Jwt.decodeComponents(headerBase64, payloadBase64)
-          signature <- decodeBase64Url(signatureBase64)
-        } yield SignedJwt(
-          jwt = jwt,
-          signature = signature
-        )
+        decodeComponents(headerBase64, payloadBase64, signatureBase64)
 
       case _ =>
         Left(new IllegalArgumentException("must be of format <header>.<payload>.<signature>"))
     }
   }
-
-  implicit val codec: Codec[SignedJwt] = Codec.from(
-    Decoder[String].emapTry(SignedJwt.decode(_).toTry),
-    Encoder[String].contramap(_.encode)
-  )
 }

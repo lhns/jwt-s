@@ -94,9 +94,10 @@ lazy val root: Project =
       publish / skip := true
     )
     .aggregate(core.projectRefs: _*)
-    .aggregate(jwtScala.projectRefs: _*)
+    .aggregate(moduleJwtScala.projectRefs: _*)
+    .aggregate(moduleHttp4s.projectRefs: _*)
 
-lazy val core = projectMatrix.in(file("core"))
+lazy val core = projectMatrix.in(file("modules/core"))
   .settings(commonSettings)
   .settings(
     name := "jwt-s",
@@ -109,7 +110,7 @@ lazy val core = projectMatrix.in(file("core"))
   )
   .jvmPlatform(scalaVersions)
 
-lazy val jwtScala = projectMatrix.in(file("jwtScala"))
+lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
   .dependsOn(core)
   .settings(commonSettings)
   .settings(
@@ -117,6 +118,18 @@ lazy val jwtScala = projectMatrix.in(file("jwtScala"))
 
     libraryDependencies ++= Seq(
       "com.github.jwt-scala" %% "jwt-core" % V.jwtScala,
+    ),
+  )
+  .jvmPlatform(scalaVersions)
+
+lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "jwt-s-http4s",
+
+    libraryDependencies ++= Seq(
+      "org.http4s" %% "http4s-server" % V.http4s,
     ),
   )
   .jvmPlatform(scalaVersions)

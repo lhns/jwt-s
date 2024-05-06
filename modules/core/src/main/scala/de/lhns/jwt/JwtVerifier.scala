@@ -4,6 +4,7 @@ import cats.Monad
 import cats.effect.{Clock, Sync}
 import de.lhns.jwt.Jwt.JwtPayload
 import cats.syntax.all._
+import de.lhns.jwt.JwtValidationException._
 
 import java.time.{Instant, ZoneId}
 
@@ -17,8 +18,6 @@ trait JwtVerifier[F[_], -Algorithm <: JwtAlgorithm, Key] {
 }
 
 object JwtVerifier {
-
-  import DefaultVerifier._
 
   abstract class DefaultVerifier[F[_] : Monad, -Algorithm <: JwtAlgorithm, Key] extends JwtVerifier[F, Algorithm, Key] {
     override def verify(
@@ -64,27 +63,5 @@ object JwtVerifier {
                 algorithm: Algorithm,
                 key: Key
               ): F[Either[Throwable, Jwt]]
-  }
-
-  object DefaultVerifier {
-    class JwtValidationException(message: String) extends RuntimeException(message)
-
-    class JwtEmptyIssuerException extends JwtValidationException("The token does not contain an issuer.")
-
-    class JwtEmptySubjectException extends JwtValidationException("The token does not contain a subject.")
-
-    class JwtEmptyAudienceException extends JwtValidationException("The token does not contain an audience.")
-
-    class JwtEmptyExpirationException extends JwtValidationException("The token does not contain an expiration.")
-
-    class JwtEmptyNotBeforeException extends JwtValidationException("The token does not contain when it will be valid.")
-
-    class JwtEmptyIssuedAtException extends JwtValidationException("The token does not contain when it was issued.")
-
-    class JwtEmptyJwtIdException extends JwtValidationException("The token does not contain a jwt id.")
-
-    class JwtExpirationException(expiration: Instant) extends JwtValidationException(s"The token is expired since ${expiration.atZone(ZoneId.systemDefault())}")
-
-    class JwtNotBeforeException(notBefore: Instant) extends JwtValidationException(s"The token will only be valid after ${notBefore.atZone(ZoneId.systemDefault())}")
   }
 }

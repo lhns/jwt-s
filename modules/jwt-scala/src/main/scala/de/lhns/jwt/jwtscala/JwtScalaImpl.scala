@@ -2,7 +2,8 @@ package de.lhns.jwt.jwtscala
 
 import cats.effect.Sync
 import de.lhns.jwt.JwtAlgorithm.{ES256, ES384, ES512, HS256, HS384, HS512, JwtAsymmetricAlgorithm, JwtHmacAlgorithm, RS256, RS384, RS512}
-import de.lhns.jwt.{Jwt, JwtAlgorithm, JwtSigner, JwtVerifier, SignedJwt}
+import de.lhns.jwt.JwtValidationException.JwtInvalidSignatureException
+import de.lhns.jwt.{Jwt, JwtAlgorithm, JwtSigner, JwtValidationException, JwtVerifier, SignedJwt}
 import de.lhns.jwt.JwtVerifier.DefaultVerifier
 import pdi.jwt.JwtUtils
 
@@ -56,7 +57,7 @@ object JwtScalaImpl {
           case JwtAlgorithm.HS512 => pdi.jwt.JwtAlgorithm.HS512
         }
       )
-      if (verified) Right(signedJwt.jwt) else Left(new RuntimeException()) // TODO
+      if (verified) Right(signedJwt.jwt) else Left(new JwtInvalidSignatureException())
     }
   }
 
@@ -75,7 +76,7 @@ object JwtScalaImpl {
           case JwtAlgorithm.ES512 => pdi.jwt.JwtAlgorithm.ES512
         }
       )
-      if (verified) Right(signedJwt.jwt) else Left(new RuntimeException()) // TODO
+      if (verified) Right(signedJwt.jwt) else Left(new JwtInvalidSignatureException())
     }
   }
 }
