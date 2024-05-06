@@ -1,5 +1,5 @@
 package de.lhns.jwt
 
-trait JwtSigner[F[_], -Algorithm <: JwtAlgorithm, Key] {
-  def sign(jwt: Jwt, algorithm: Algorithm, key: Key): F[SignedJwt]
+trait JwtSigner[F[_]] {
+  def sign(jwt: Jwt): F[SignedJwt]
 }

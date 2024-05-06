@@ -2,22 +2,21 @@ package de.lhns.jwt
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import cats.syntax.all._
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
+import de.lhns.jwt.JwtAlgorithm.JwtAsymmetricAlgorithm
+import de.lhns.jwt.jwtscala.JwtScalaImpl._
 import io.circe.Json
 import munit.FunSuite
 import sun.security.provider.certpath.X509CertPath
 
+import java.security.cert._
 import java.security.{InvalidAlgorithmParameterException, KeyStore, PrivateKey}
-import java.security.cert.{CertPath, CertPathValidator, CertPathValidatorException, PKIXCertPathValidatorResult, PKIXParameters, X509Certificate}
 import java.util.Base64
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 import scala.collection.immutable.ListMap
 import scala.util.Random
-import scala.jdk.CollectionConverters._
-import de.lhns.jwt.jwtscala.JwtScalaImpl._
-import cats.syntax.all._
-import de.lhns.jwt.JwtAlgorithm.JwtAsymmetricAlgorithm
 
 class JwtSuite extends FunSuite {
   test("test") {
@@ -30,12 +29,12 @@ class JwtSuite extends FunSuite {
     val bytes: Array[Byte] = Random.nextBytes(20)
     println("secret " + Base64.getUrlEncoder.withoutPadding.encodeToString(bytes))
     val secretKey: SecretKey = new SecretKeySpec(bytes, "HmacSHA256")
-    val signedJwt = jwt.sign[IO](JwtAlgorithm.HS256, secretKey).unsafeRunSync()(IORuntime.global)
+    val signedJwt = jwt.sign[IO](hmacSigner(JwtAlgorithm.HS256, secretKey)).unsafeRunSync()(IORuntime.global)
     println(signedJwt.encode)
-    println(signedJwt.verify[IO](JwtAlgorithm.HS256, secretKey).unsafeRunSync()(IORuntime.global))
+    println(signedJwt.verify[IO](hmacVerifier(secretKey, algorithms = Seq(JwtAlgorithm.HS256))).unsafeRunSync()(IORuntime.global))
 
     def sign(jwt: Jwt, certPath: X509CertPath, privateKey: PrivateKey): IO[SignedJwt] = {
-      jwt.modifyHeader(_.withX509CertificateChain(Some(certPath))).sign[IO](JwtAlgorithm.RS512, privateKey)
+      jwt.modifyHeader(_.withX509CertificateChain(Some(certPath))).sign[IO](asymmetricSigner(JwtAlgorithm.RS512, privateKey))
     }
 
     def validateCertPath(
@@ -66,7 +65,7 @@ class JwtSuite extends FunSuite {
         case Some(Right(result)) =>
           signedJwt.header.algorithm match {
             case Some(algorithm: JwtAsymmetricAlgorithm) =>
-              signedJwt.verify[IO](algorithm, result.getPublicKey, options)
+              signedJwt.verify[IO](asymmetricVerifier(result.getPublicKey, options = options))
 
             case _ =>
               IO.pure(Left(new IllegalArgumentException("unsupported algorithm for cert path validation")))

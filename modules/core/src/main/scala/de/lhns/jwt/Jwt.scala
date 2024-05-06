@@ -8,7 +8,7 @@ import sun.security.provider.certpath.X509CertPath
 
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
-import java.security.cert.{CertPath, CertificateFactory, X509Certificate}
+import java.security.cert.{CertificateFactory, X509Certificate}
 import java.time.Instant
 import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
@@ -32,21 +32,11 @@ final case class Jwt(
 
   def encode: String = s"${header.encode}.${payload.encode}"
 
-  def sign[F[_]]: SignPartiallyApplied[F] =
-    new SignPartiallyApplied[F](this)
+  def sign[F[_]](jwtSigner: JwtSigner[F]): F[SignedJwt] =
+    jwtSigner.sign(this)
 }
 
 object Jwt {
-  class SignPartiallyApplied[F[_]](jwt: Jwt) {
-    def apply[Algorithm <: JwtAlgorithm, Key](
-                                               algorithm: Algorithm,
-                                               key: Key
-                                             )(
-                                               implicit signer: JwtSigner[F, Algorithm, Key]
-                                             ): F[SignedJwt] =
-      signer.sign(jwt.modifyHeader(_.withAlgorithm(Some(algorithm))), algorithm, key)
-  }
-
   trait JwtComponent {
     type Self <: JwtComponent
 
@@ -79,7 +69,7 @@ object Jwt {
 
     lazy val algorithm: Option[JwtAlgorithm] = claim[String]("alg").flatMap(JwtAlgorithm.fromString)
 
-    def withAlgorithm(algorithm: Option[JwtAlgorithm]): Self = withClaim("alg", Some(algorithm.fold("none")(_.name)))
+    def withAlgorithm(algorithm: Option[JwtAlgorithm]): Self = withClaim("alg", Some(JwtAlgorithm.toString(algorithm)))
 
     lazy val contentType: Option[String] = claim[String]("cty")
 
@@ -128,7 +118,9 @@ object Jwt {
                               ) extends JwtComponent with JwtHeaderClaims {
     override type Self = JwtHeader
 
-    override def withClaims(claims: ListMap[String, Json]): JwtHeader = JwtHeader(claims)
+    override def withClaims(claims: ListMap[String, Json]): JwtHeader =
+      if (claims == this.claims) this
+      else JwtHeader(claims)
 
     private[Jwt] def withEncoded(encoded: String): JwtHeader = new JwtHeader(claims, Some(encoded))
 
@@ -208,7 +200,9 @@ object Jwt {
                                ) extends JwtComponent with JwtPayloadClaims {
     override type Self = JwtPayload
 
-    override def withClaims(claims: ListMap[String, Json]): JwtPayload = JwtPayload(claims)
+    override def withClaims(claims: ListMap[String, Json]): JwtPayload =
+      if (claims == this.claims) this
+      else JwtPayload(claims)
 
     private[Jwt] def withEncoded(encoded: String): JwtPayload = new JwtPayload(claims, Some(encoded))
 

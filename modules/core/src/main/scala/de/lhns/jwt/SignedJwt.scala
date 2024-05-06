@@ -1,8 +1,6 @@
 package de.lhns.jwt
 
-import cats.effect.Clock
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
-import de.lhns.jwt.SignedJwt.VerifyPartiallyApplied
 import io.circe.{Codec, Decoder, Encoder}
 
 final case class SignedJwt(
@@ -46,23 +44,11 @@ final case class SignedJwt(
 
   def encode: String = s"${jwt.encode}.${encodeBase64Url(signature)}"
 
-  def verify[F[_]]: VerifyPartiallyApplied[F] =
-    new VerifyPartiallyApplied[F](this)
+  def verify[F[_]](jwtVerifier: JwtVerifier[F]): F[Either[Throwable, Jwt]] =
+    jwtVerifier.verify(this)
 }
 
 object SignedJwt {
-  class VerifyPartiallyApplied[F[_]](jwt: SignedJwt) {
-    def apply[Algorithm <: JwtAlgorithm, Key](
-                                               algorithm: Algorithm,
-                                               key: Key,
-                                               options: JwtValidationOptions = JwtValidationOptions.default
-                                             )(implicit
-                                               verifier: JwtVerifier[F, Algorithm, Key],
-                                               clock: Clock[F]
-                                             ): F[Either[Throwable, Jwt]] =
-      verifier.verify(jwt.modifyHeader(_.withAlgorithm(Some(algorithm))), algorithm, key, options)
-  }
-
   def apply(
              header: JwtHeader,
              payload: JwtPayload,

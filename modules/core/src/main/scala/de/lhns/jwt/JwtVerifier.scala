@@ -1,41 +1,28 @@
 package de.lhns.jwt
 
 import cats.Monad
-import cats.effect.{Clock, Sync}
-import de.lhns.jwt.Jwt.JwtPayload
+import cats.effect.Clock
 import cats.syntax.all._
+import de.lhns.jwt.Jwt.JwtPayload
 import de.lhns.jwt.JwtValidationException._
 
-import java.time.{Instant, ZoneId}
+import java.time.Instant
 
-trait JwtVerifier[F[_], -Algorithm <: JwtAlgorithm, Key] {
-  def verify(
-              signedJwt: SignedJwt,
-              algorithm: Algorithm,
-              key: Key,
-              options: JwtValidationOptions
-            )(implicit clock: Clock[F]): F[Either[Throwable, Jwt]]
+trait JwtVerifier[F[_]] {
+  def verify(signedJwt: SignedJwt): F[Either[Throwable, Jwt]]
 }
 
 object JwtVerifier {
-
-  abstract class DefaultVerifier[F[_] : Monad, -Algorithm <: JwtAlgorithm, Key] extends JwtVerifier[F, Algorithm, Key] {
-    override def verify(
-                         signedJwt: SignedJwt,
-                         algorithm: Algorithm,
-                         key: Key,
-                         options: JwtValidationOptions
-                       )(implicit clock: Clock[F]): F[Either[Throwable, Jwt]] =
-      clock.realTimeInstant
+  class DefaultVerifier[F[_] : Monad : Clock](options: JwtValidationOptions) extends JwtVerifier[F] {
+    override def verify(signedJwt: SignedJwt): F[Either[Throwable, Jwt]] =
+      implicitly[Clock[F]].realTimeInstant
         .map { now =>
           Either.catchOnly[JwtValidationException] {
-            validateRequired(signedJwt.payload, options)
-            validateTiming(signedJwt.payload, now, options)
-          }
+              validateRequired(signedJwt.payload, options)
+              validateTiming(signedJwt.payload, now, options)
+            }
+            .as(signedJwt.jwt)
         }
-        .flatMap(_ =>
-          verify(signedJwt, algorithm, key)
-        )
 
     private def validateRequired(payload: JwtPayload, options: JwtValidationOptions): Unit = {
       if (options.requireIssuer && payload.issuer.isEmpty) throw new JwtEmptyIssuerException()
@@ -57,11 +44,5 @@ object JwtVerifier {
         .filter(notBefore => now.isAfter(notBefore.minusMillis(leewayMillis)))
         .foreach(notBefore => throw new JwtNotBeforeException(notBefore))
     }
-
-    def verify(
-                signedJwt: SignedJwt,
-                algorithm: Algorithm,
-                key: Key
-              ): F[Either[Throwable, Jwt]]
   }
 }

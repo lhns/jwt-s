@@ -7,6 +7,8 @@ class JwtValidationException(message: String, cause: Throwable) extends RuntimeE
 }
 
 object JwtValidationException {
+  class JwtInvalidAlgorithmException(algorithm: Option[JwtAlgorithm]) extends JwtValidationException(s"The token has an invalid algorithm: ${JwtAlgorithm.toString(algorithm)}")
+
   class JwtEmptyIssuerException extends JwtValidationException("The token does not contain an issuer.")
 
   class JwtEmptySubjectException extends JwtValidationException("The token does not contain a subject.")
@@ -25,5 +27,5 @@ object JwtValidationException {
 
   class JwtNotBeforeException(notBefore: Instant) extends JwtValidationException(s"The token will only be valid after ${notBefore.atZone(ZoneId.systemDefault())}")
 
-  class JwtInvalidSignatureException() extends JwtValidationException("The token signature is not valid.")
+  class JwtInvalidSignatureException extends JwtValidationException("The token signature is not valid.")
 }
