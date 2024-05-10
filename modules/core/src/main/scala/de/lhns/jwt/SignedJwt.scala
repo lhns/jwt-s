@@ -1,5 +1,7 @@
 package de.lhns.jwt
 
+import cats.Monad
+import cats.syntax.all._
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
 import io.circe.{Codec, Decoder, Encoder}
 
@@ -44,8 +46,8 @@ final case class SignedJwt(
 
   def encode: String = s"${jwt.encode}.${encodeBase64Url(signature)}"
 
-  def verify[F[_]](jwtVerifier: JwtVerifier[F]): F[Either[Throwable, Jwt]] =
-    jwtVerifier.verify(this)
+  def verify[F[_] : Monad](jwtVerifier: JwtVerifier[F]): F[Either[Throwable, Jwt]] =
+    jwtVerifier.verify(this).map(_.as(jwt))
 }
 
 object SignedJwt {

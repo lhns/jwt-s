@@ -9,7 +9,7 @@ val V = new {
   val betterMonadicFor = "0.3.1"
   val catsEffect = "3.5.4"
   val circe = "0.14.6"
-  val http4s = "0.23.26"
+  val http4s = "0.23.27"
   val jwtScala = "10.0.0"
   val logbackClassic = "1.4.8"
   val munit = "0.7.29"
@@ -103,12 +103,13 @@ lazy val core = projectMatrix.in(file("modules/core"))
     name := "jwt-s",
 
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-generic" % V.circe,
-      "io.circe" %% "circe-parser" % V.circe,
-      "org.typelevel" %% "cats-effect" % V.catsEffect,
+      "io.circe" %%% "circe-generic" % V.circe,
+      "io.circe" %%% "circe-parser" % V.circe,
+      "org.typelevel" %%% "cats-effect" % V.catsEffect,
     ),
   )
   .jvmPlatform(scalaVersions)
+  .jsPlatform(scalaVersions)
 
 lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
   .dependsOn(core)
@@ -129,7 +130,8 @@ lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
     name := "jwt-s-http4s",
 
     libraryDependencies ++= Seq(
-      "org.http4s" %% "http4s-server" % V.http4s,
+      "org.http4s" %%% "http4s-server" % V.http4s,
     ),
   )
   .jvmPlatform(scalaVersions)
+  .jsPlatform(scalaVersions)
