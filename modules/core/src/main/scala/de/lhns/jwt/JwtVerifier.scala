@@ -3,7 +3,7 @@ package de.lhns.jwt
 import cats.data.EitherT
 import cats.effect.{Clock, Sync}
 import cats.syntax.all._
-import cats.{Monad, Semigroup}
+import cats.{Monad, Monoid}
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
 import de.lhns.jwt.JwtValidationException._
 
@@ -14,7 +14,12 @@ sealed trait JwtVerifier[F[_]] {
 }
 
 object JwtVerifier {
-  implicit def semigroup[F[_] : Monad]: Semigroup[JwtVerifier[F]] = new Semigroup[JwtVerifier[F]] {
+  implicit def monoid[F[_] : Monad]: Monoid[JwtVerifier[F]] = new Monoid[JwtVerifier[F]] {
+    override def empty: JwtVerifier[F] = new JwtVerifier[F] {
+      override def verify(signedJwt: SignedJwt): F[Either[Throwable, Unit]] =
+        Monad[F].pure(Right(()))
+    }
+
     override def combine(x: JwtVerifier[F], y: JwtVerifier[F]): JwtVerifier[F] = new JwtVerifier[F] {
       override def verify(signedJwt: SignedJwt): F[Either[Throwable, Unit]] =
         EitherT(x.verify(signedJwt)).flatMapF(_ => y.verify(signedJwt)).value
