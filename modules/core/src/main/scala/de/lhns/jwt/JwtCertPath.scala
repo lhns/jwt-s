@@ -2,7 +2,6 @@ package de.lhns.jwt
 
 import cats.Monad
 import cats.syntax.all._
-import sun.security.provider.certpath.X509CertPath
 
 import java.security.cert._
 import java.security.{InvalidAlgorithmParameterException, KeyStore, PublicKey}
@@ -10,8 +9,8 @@ import java.security.{InvalidAlgorithmParameterException, KeyStore, PublicKey}
 object JwtCertPath {
   def verifier[F[_] : Monad](
                               keyStore: KeyStore,
-                              pkixParameters: PKIXParameters => Unit = defaultPkixParameters,
-                              verifier: PublicKey => JwtVerifier[F]
+                              verifier: PublicKey => JwtVerifier[F],
+                              pkixParameters: PKIXParameters => Unit = defaultPkixParameters
                             ): JwtVerifier[F] = JwtVerifier[F] { signedJwt =>
     signedJwt.header.x509CertificateChain
       .map(validateCertPath(_, keyStore, pkixParameters)) match {
@@ -26,7 +25,7 @@ object JwtCertPath {
     }
   }
 
-  def signer[F[_]](certPath: X509CertPath, signer: JwtSigner[F]): JwtSigner[F] =
+  def signer[F[_]](certPath: CertPath, signer: JwtSigner[F]): JwtSigner[F] =
     JwtSigner[F] { jwt =>
       signer.sign(jwt.modifyHeader(_.withX509CertificateChain(Some(certPath))))
     }

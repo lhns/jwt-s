@@ -7,11 +7,12 @@ name := (core.projectRefs.head / name).value
 
 val V = new {
   val betterMonadicFor = "0.3.1"
+  val bouncyCastle = "1.78.1"
   val catsEffect = "3.5.4"
   val circe = "0.14.6"
   val http4s = "0.23.27"
   val jwtScala = "10.0.0"
-  val logbackClassic = "1.4.8"
+  val logbackClassic = "1.5.6"
   val munit = "0.7.29"
   val munitTaglessFinal = "0.2.0"
   val scalaLogging = "3.9.5"
@@ -119,6 +120,7 @@ lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
 
     libraryDependencies ++= Seq(
       "com.github.jwt-scala" %% "jwt-core" % V.jwtScala,
+      "org.bouncycastle" % "bcpkix-jdk18on" % V.bouncyCastle % Test,
     ),
   )
   .jvmPlatform(scalaVersions)
