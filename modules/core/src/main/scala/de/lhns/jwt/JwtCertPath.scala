@@ -12,7 +12,7 @@ object JwtCertPath {
                               keyStore: KeyStore,
                               pkixParameters: PKIXParameters => Unit = defaultPkixParameters,
                               verifier: PublicKey => JwtVerifier[F]
-                            ): JwtVerifier[F] = JwtVerifier[F] { signedJwt: SignedJwt =>
+                            ): JwtVerifier[F] = JwtVerifier[F] { signedJwt =>
     signedJwt.header.x509CertificateChain
       .map(validateCertPath(_, keyStore, pkixParameters)) match {
       case Some(Right(result)) =>
@@ -27,7 +27,7 @@ object JwtCertPath {
   }
 
   def signer[F[_]](certPath: X509CertPath, signer: JwtSigner[F]): JwtSigner[F] =
-    JwtSigner[F] { jwt: Jwt =>
+    JwtSigner[F] { jwt =>
       signer.sign(jwt.modifyHeader(_.withX509CertificateChain(Some(certPath))))
     }
 

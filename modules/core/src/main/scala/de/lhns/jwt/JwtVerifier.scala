@@ -28,23 +28,21 @@ object JwtVerifier {
 
   def delay[F[_] : Sync](verifier: SignedJwt => Either[Throwable, Unit]): JwtVerifier[F] = new JwtVerifier[F] {
     override def verify(signedJwt: SignedJwt): F[Either[Throwable, Unit]] =
-      Sync[F].delay(verifier(signedJwt).as(signedJwt.jwt))
+      Sync[F].delay(verifier(signedJwt))
   }
 
   def basicVerifier[F[_] : Monad : Clock](
                                            algorithms: Seq[JwtAlgorithm],
                                            options: JwtValidationOptions
                                          ): JwtVerifier[F] =
-    JwtVerifier { signedJwt: SignedJwt =>
-      implicitly[Clock[F]].realTimeInstant
-        .map { now =>
-          Either.catchOnly[JwtValidationException] {
-              validateRequired(signedJwt.payload, options)
-              validateTiming(signedJwt.payload, now, options)
-              validateAlgorithm(signedJwt.header, algorithms)
-            }
-            .as(signedJwt.jwt)
+    JwtVerifier { signedJwt =>
+      implicitly[Clock[F]].realTime.map { now =>
+        Either.catchOnly[JwtValidationException] {
+          validateRequired(signedJwt.payload, options)
+          validateTiming(signedJwt.payload, Instant.ofEpochMilli(now.toMillis), options)
+          validateAlgorithm(signedJwt.header, algorithms)
         }
+      }
     }
 
   private def validateRequired(payload: JwtPayload, options: JwtValidationOptions): Unit = {

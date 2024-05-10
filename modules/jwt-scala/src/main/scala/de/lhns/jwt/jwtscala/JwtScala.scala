@@ -14,7 +14,7 @@ import javax.crypto.SecretKey
 
 object JwtScala {
   def hmacSigner[F[_] : Sync](algorithm: JwtHmacAlgorithm, key: SecretKey): JwtSigner[F] =
-    JwtSigner.delay[F] { jwt: Jwt =>
+    JwtSigner.delay[F] { jwt =>
       val jwtAlg = jwt.modifyHeader(_.withAlgorithm(Some(algorithm)))
       val signature = JwtUtils.sign(
         jwtAlg.encode.getBytes(StandardCharsets.UTF_8),
@@ -25,7 +25,7 @@ object JwtScala {
     }
 
   def asymmetricSigner[F[_] : Sync](algorithm: JwtAsymmetricAlgorithm, key: PrivateKey): JwtSigner[F] =
-    JwtSigner.delay[F] { jwt: Jwt =>
+    JwtSigner.delay[F] { jwt =>
       val jwtAlg = jwt.modifyHeader(_.withAlgorithm(Some(algorithm)))
       val signature = JwtUtils.sign(
         jwtAlg.encode.getBytes(StandardCharsets.UTF_8),
@@ -41,13 +41,14 @@ object JwtScala {
                                  options: JwtValidationOptions = JwtValidationOptions.default
                                ): JwtVerifier[F] =
     basicVerifier[F](algorithms, options) |+|
-      JwtVerifier.delay[F] { signedJwt: SignedJwt =>
+      JwtVerifier.delay[F] { signedJwt =>
         val verified = JwtUtils.verify(
           signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
           signedJwt.signature,
           key,
           jwtHmacAlgorithm(signedJwt.header.algorithm match {
             case Some(algorithm: JwtHmacAlgorithm) => algorithm
+            case _ => throw new IllegalStateException()
           })
         )
         Either.cond(verified, (), new JwtInvalidSignatureException())
@@ -59,13 +60,14 @@ object JwtScala {
                                        options: JwtValidationOptions = JwtValidationOptions.default
                                      ): JwtVerifier[F] =
     basicVerifier[F](algorithms, options) |+|
-      JwtVerifier.delay[F] { signedJwt: SignedJwt =>
+      JwtVerifier.delay[F] { signedJwt =>
         val verified = JwtUtils.verify(
           signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
           signedJwt.signature,
           key,
           jwtAsymmetricAlgorithm(signedJwt.header.algorithm match {
             case Some(algorithm: JwtAsymmetricAlgorithm) => algorithm
+            case _ => throw new IllegalStateException()
           })
         )
         Either.cond(verified, (), new JwtInvalidSignatureException())
