@@ -62,13 +62,16 @@ object JwtVerifier {
 
   private def validateTiming(payload: JwtPayload, now: Instant, options: JwtValidationOptions): Unit = {
     val leewayMillis = options.leeway.toMillis
-    payload.expiration
-      .filterNot(expiration => now.isBefore(expiration.plusMillis(leewayMillis)))
-      .foreach(expiration => throw new JwtExpirationException(expiration))
 
-    payload.notBefore
-      .filter(notBefore => now.isAfter(notBefore.minusMillis(leewayMillis)))
-      .foreach(notBefore => throw new JwtNotBeforeException(notBefore))
+    if (options.validateExpiration)
+      payload.expiration
+        .filterNot(expiration => now.isBefore(expiration.plusMillis(leewayMillis)))
+        .foreach(expiration => throw new JwtExpirationException(expiration))
+
+    if (options.validateNotBefore)
+      payload.notBefore
+        .filter(notBefore => now.isAfter(notBefore.minusMillis(leewayMillis)))
+        .foreach(notBefore => throw new JwtNotBeforeException(notBefore))
   }
 
   private def validateAlgorithm(header: JwtHeader, algorithms: Seq[JwtAlgorithm]): Unit =
