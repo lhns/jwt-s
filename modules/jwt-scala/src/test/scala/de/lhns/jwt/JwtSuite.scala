@@ -47,6 +47,21 @@ class JwtSuite extends IOSuite {
     keyGen.genKeyPair()
   }
 
+  private lazy val keyPair = generateRsaKeypair(4096)
+
+  test("rsa") {
+    println("jwt: " + jwt)
+    for {
+      signedJwt <- jwt.sign[IO](asymmetricSigner(JwtAlgorithm.RS256, keyPair.getPrivate))
+      encoded = signedJwt.encode
+      _ = println("encoded: " + encoded)
+      decodedJwt = SignedJwt.decode(encoded).toTry.get
+      obtainedOrError <- decodedJwt.verify[IO](asymmetricVerifier(keyPair.getPublic, algorithms = JwtAlgorithm.JwtRsaAlgorithm.values))
+      obtained = obtainedOrError.toTry.get
+    } yield
+      assertEquals(obtained.reencode, signedJwt.jwt)
+  }
+
   private def generateCertificate(
                                    keyPair: KeyPair,
                                    issuer: X500Name,
@@ -82,7 +97,6 @@ class JwtSuite extends IOSuite {
 
   test("cert path") {
     println("jwt: " + jwt)
-    val keyPair = generateRsaKeypair(4096)
     val cert = generateCertificate(
       keyPair = keyPair,
       issuer = new X500Name("C=DE"),
