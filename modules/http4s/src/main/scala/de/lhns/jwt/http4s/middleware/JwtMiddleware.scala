@@ -30,7 +30,7 @@ object JwtMiddleware {
 
   def context[F[_] : Monad](jwtVerifier: JwtVerifier[F]): ContextMiddleware[F, Option[Either[Throwable, SignedJwt]]] =
     ContextMiddleware(Kleisli { request =>
-      OptionT(verifiedJwt(request, jwtVerifier))
+      OptionT.liftF(verifiedJwt(request, jwtVerifier))
     })
 
   private def verifiedJwt[F[_] : Monad](
