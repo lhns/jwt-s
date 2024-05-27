@@ -13,8 +13,8 @@ val V = new {
   val http4s = "0.23.27"
   val jwtScala = "10.0.1"
   val logbackClassic = "1.5.6"
-  val munit = "0.7.29"
-  val munitTaglessFinal = "0.2.0"
+  val munit = "1.0.0"
+  val munitCatsEffect = "2.0.0"
   val scalaLogging = "3.9.5"
 }
 
@@ -40,8 +40,8 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-classic" % V.logbackClassic % Test,
-    "de.lolhens" %% "munit-tagless-final" % V.munitTaglessFinal % Test,
-    "org.scalameta" %% "munit" % V.munit % Test,
+    "org.typelevel" %%% "munit-cats-effect" % V.munitCatsEffect % Test,
+    "org.scalameta" %%% "munit" % V.munit % Test,
   ),
 
   testFrameworks += new TestFramework("munit.Framework"),

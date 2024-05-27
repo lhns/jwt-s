@@ -4,6 +4,7 @@ import cats.effect.IO
 import de.lhns.jwt.Jwt.JwtPayload
 import de.lhns.jwt.jwtscala.JwtScala
 import de.lhns.jwt.jwtscala.JwtScala._
+import munit.CatsEffectSuite
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.BasicConstraints
@@ -19,7 +20,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 import scala.util.Random
 
-class JwtSuite extends IOSuite {
+class JwtSuite extends CatsEffectSuite {
   private val jwt = Jwt(
     payload = JwtPayload()
       .withIssuer(Some("test"))
