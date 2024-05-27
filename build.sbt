@@ -30,8 +30,8 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
   homepage := scmInfo.value.map(_.browseUrl),
   scmInfo := Some(
     ScmInfo(
-      url("https://github.com/lhns/http4s-jwt-auth"),
-      "scm:git@github.com:lhns/http4s-jwt-auth.git"
+      url("https://github.com/lhns/jwt-s"),
+      "scm:git@github.com:lhns/jwt-s.git"
     )
   ),
   developers := List(
@@ -57,12 +57,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   publishTo := sonatypePublishToBundle.value,
 
-  sonatypeCredentialHost := {
-    if (sonatypeProfileName.value == "de.lolhens")
-      "oss.sonatype.org"
-    else
-      "s01.oss.sonatype.org"
-  },
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
 
   credentials ++= (for {
     username <- sys.env.get("SONATYPE_USERNAME")
@@ -72,18 +67,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
     sonatypeCredentialHost.value,
     username,
     password
-  )).toList,
-
-  pomExtra := {
-    if (sonatypeProfileName.value == "de.lolhens")
-      <distributionManagement>
-        <relocation>
-          <groupId>de.lhns</groupId>
-        </relocation>
-      </distributionManagement>
-    else
-      pomExtra.value
-  }
+  )).toList
 )
 
 lazy val root: Project =
