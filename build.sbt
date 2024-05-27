@@ -1,4 +1,4 @@
-lazy val scalaVersions = Seq("3.3.1", "2.13.13", "2.12.18")
+lazy val scalaVersions = Seq("3.3.1", "2.13.13")
 
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
@@ -7,9 +7,12 @@ name := (core.projectRefs.head / name).value
 
 val V = new {
   val betterMonadicFor = "0.3.1"
-  val http4s = "0.23.24"
-  val jwtCirce = "9.4.6"
-  val logbackClassic = "1.4.13"
+  val bouncyCastle = "1.78.1"
+  val catsEffect = "3.5.4"
+  val circe = "0.14.6"
+  val http4s = "0.23.27"
+  val jwtScala = "10.0.0"
+  val logbackClassic = "1.5.6"
   val munit = "0.7.29"
   val munitTaglessFinal = "0.2.0"
   val scalaLogging = "3.9.5"
@@ -92,16 +95,45 @@ lazy val root: Project =
       publish / skip := true
     )
     .aggregate(core.projectRefs: _*)
+    .aggregate(moduleJwtScala.projectRefs: _*)
+    .aggregate(moduleHttp4s.projectRefs: _*)
 
-lazy val core = projectMatrix.in(file("core"))
+lazy val core = projectMatrix.in(file("modules/core"))
   .settings(commonSettings)
   .settings(
-    name := "http4s-jwt-auth",
+    name := "jwt-s",
 
     libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % V.scalaLogging,
-      "org.http4s" %% "http4s-server" % V.http4s,
-      "com.github.jwt-scala" %% "jwt-circe" % V.jwtCirce,
+      "io.circe" %%% "circe-generic" % V.circe,
+      "io.circe" %%% "circe-parser" % V.circe,
+      "org.typelevel" %%% "cats-effect" % V.catsEffect,
     ),
   )
   .jvmPlatform(scalaVersions)
+  .jsPlatform(scalaVersions)
+
+lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "jwt-s-jwt-scala",
+
+    libraryDependencies ++= Seq(
+      "com.github.jwt-scala" %% "jwt-core" % V.jwtScala,
+      "org.bouncycastle" % "bcpkix-jdk18on" % V.bouncyCastle % Test,
+    ),
+  )
+  .jvmPlatform(scalaVersions)
+
+lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "jwt-s-http4s",
+
+    libraryDependencies ++= Seq(
+      "org.http4s" %%% "http4s-server" % V.http4s,
+    ),
+  )
+  .jvmPlatform(scalaVersions)
+  .jsPlatform(scalaVersions)
