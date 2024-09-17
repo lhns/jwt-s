@@ -10,10 +10,10 @@ val V = new {
   val bouncyCastle = "1.78.1"
   val catsEffect = "3.5.4"
   val circe = "0.14.10"
-  val http4s = "0.23.27"
+  val http4s = "0.23.28"
   val jwtScala = "10.0.1"
   val logbackClassic = "1.5.6"
-  val munit = "1.0.0"
+  val munit = "1.0.2"
   val munitCatsEffect = "2.0.0"
   val scalaLogging = "3.9.5"
 }
