@@ -16,7 +16,7 @@ object TapirJwtAuth {
       .mapDecode(string => SignedJwt.decode(string) match {
         case Left(error) => DecodeResult.Error(string, error)
         case Right(jwt) => DecodeResult.Value(jwt)
-      })(_.encode).schema(Schema.string.description(jwtDescription))
+      })(_.encode).schema(Schema.string[SignedJwt].description(jwtDescription))
 
   val jwtAuth: EndpointInput.Auth[SignedJwt, AuthType.Http] =
     auth.bearer[SignedJwt]().description(jwtDescription)
