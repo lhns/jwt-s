@@ -2,7 +2,6 @@ package de.lhns.jwt
 
 import cats.effect.IO
 import de.lhns.jwt.Jwt.JwtPayload
-import de.lhns.jwt.jwtscala.JwtScala
 import de.lhns.jwt.jwtscala.JwtScala._
 import munit.CatsEffectSuite
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
@@ -108,16 +107,16 @@ class JwtSuite extends CatsEffectSuite {
     )
     val certPath = CertificateFactory.getInstance("X.509").generateCertPath(java.util.List.of(cert))
     for {
-      signedJwt <- jwt.sign(JwtCertPath.signer[IO](
-        certPath,
-        JwtScala.asymmetricSigner(JwtAlgorithm.RS512, keyPair.getPrivate)
+      signedJwt <- jwt.sign(certPathSigner[IO](
+        JwtAlgorithm.RS512,
+        keyPair.getPrivate,
+        certPath
       ))
       encoded = signedJwt.encode
       _ = println("encoded: " + encoded)
       decodedJwt = SignedJwt.decode(encoded).toTry.get
-      obtainedOrError <- decodedJwt.verify[IO](JwtCertPath.verifier(
-        keyStoreFromCertificates(Seq(cert)),
-        asymmetricVerifier(_)
+      obtainedOrError <- decodedJwt.verify[IO](certPathVerifier(
+        keyStoreFromCertificates(Seq(cert))
       ))
       obtained = obtainedOrError.toTry.get
     } yield

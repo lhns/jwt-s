@@ -3,13 +3,15 @@ package de.lhns.jwt.jwtscala
 import cats.effect.Sync
 import cats.syntax.all._
 import de.lhns.jwt.JwtAlgorithm._
+import de.lhns.jwt.JwtCertPath.defaultPkixParameters
 import de.lhns.jwt.JwtValidationException.JwtInvalidSignatureException
 import de.lhns.jwt.JwtVerifier.basicVerifier
 import de.lhns.jwt._
 import pdi.jwt.JwtUtils
 
 import java.nio.charset.StandardCharsets
-import java.security.{PrivateKey, PublicKey}
+import java.security.cert.{CertPath, PKIXParameters}
+import java.security.{KeyStore, PrivateKey, PublicKey}
 import javax.crypto.SecretKey
 
 object JwtScala {
@@ -34,6 +36,9 @@ object JwtScala {
       )
       SignedJwt(jwtAlg, signature)
     }
+
+  def certPathSigner[F[_] : Sync](algorithm: JwtAsymmetricAlgorithm, key: PrivateKey, certPath: CertPath): JwtSigner[F] =
+    JwtCertPath.signer(certPath, asymmetricSigner(algorithm, key))
 
   def hmacVerifier[F[_] : Sync](
                                  key: SecretKey,
@@ -72,6 +77,14 @@ object JwtScala {
         )
         Either.cond(verified, (), new JwtInvalidSignatureException())
       }
+
+  def certPathVerifier[F[_] : Sync](
+                                     keyStore: KeyStore,
+                                     algorithms: Seq[JwtAsymmetricAlgorithm] = JwtAsymmetricAlgorithm.values,
+                                     options: JwtValidationOptions = JwtValidationOptions.default,
+                                     pkixParameters: PKIXParameters => Unit = defaultPkixParameters
+                                   ): JwtVerifier[F] =
+    JwtCertPath.verifier(keyStore, asymmetricVerifier(_, algorithms, options), pkixParameters)
 
   private def jwtHmacAlgorithm(algorithm: JwtHmacAlgorithm): pdi.jwt.algorithms.JwtHmacAlgorithm =
     algorithm match {

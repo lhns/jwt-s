@@ -16,6 +16,7 @@ val V = new {
   val munit = "1.0.2"
   val munitCatsEffect = "2.0.0"
   val scalaLogging = "3.9.5"
+  val tapir = "1.11.1"
 }
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
@@ -81,6 +82,7 @@ lazy val root: Project =
     .aggregate(core.projectRefs: _*)
     .aggregate(moduleJwtScala.projectRefs: _*)
     .aggregate(moduleHttp4s.projectRefs: _*)
+    .aggregate(moduleTapir.projectRefs: _*)
 
 lazy val core = projectMatrix.in(file("modules/core"))
   .settings(commonSettings)
@@ -117,6 +119,19 @@ lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
 
     libraryDependencies ++= Seq(
       "org.http4s" %%% "http4s-server" % V.http4s,
+    ),
+  )
+  .jvmPlatform(scalaVersions)
+  .jsPlatform(scalaVersions)
+
+lazy val moduleTapir = projectMatrix.in(file("modules/tapir"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(
+    name := "jwt-s-tapir",
+
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %%% "tapir-core" % V.tapir,
     ),
   )
   .jvmPlatform(scalaVersions)
