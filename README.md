@@ -13,9 +13,10 @@ Simple JWT library for scala with integration for circe and http4s.
 ### build.sbt
 ```sbt
 libraryDependencies ++= Seq(
-  "de.lhns" %% "jwt-s" % "1.0.1",
-  "de.lhns" %% "jwt-s-http4s" % "1.0.1",
-  "de.lhns" %% "jwt-s-jwt-scala" % "1.0.1"
+  "de.lhns" %% "jwt-s" % "1.1.0",
+  "de.lhns" %% "jwt-s-http4s" % "1.1.0",
+  "de.lhns" %% "jwt-s-tapir" % "1.1.0",
+  "de.lhns" %% "jwt-s-jwt-scala" % "1.1.0"
 )
 ```
 
