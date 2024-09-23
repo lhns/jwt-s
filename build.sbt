@@ -16,7 +16,7 @@ val V = new {
   val munit = "1.0.2"
   val munitCatsEffect = "2.0.0"
   val scalaLogging = "3.9.5"
-  val tapir = "1.11.1"
+  val tapir = "1.11.4"
 }
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
