@@ -251,7 +251,7 @@ object Jwt {
     )
 
   def decode(string: String): Either[Throwable, Jwt] = {
-    string.split('.').toList match {
+    string.split("\\.", -1).toList match {
       case headerBase64 +: payloadBase64 +: Nil =>
         decodeComponents(headerBase64, payloadBase64)
 

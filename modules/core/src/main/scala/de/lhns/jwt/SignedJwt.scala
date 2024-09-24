@@ -4,23 +4,24 @@ import cats.Monad
 import cats.syntax.all._
 import de.lhns.jwt.Jwt.{JwtHeader, JwtPayload}
 import io.circe.{Codec, Decoder, Encoder}
+import scodec.bits.ByteVector
 
 final case class SignedJwt(
                             jwt: Jwt,
-                            signature: Array[Byte]
+                            signature: ByteVector
                           ) {
   def header: JwtHeader = jwt.header
 
   def payload: JwtPayload = jwt.payload
 
   @deprecated
-  private def copy(jwt: Jwt, signature: Array[Byte]): SignedJwt =
+  private def copy(jwt: Jwt, signature: ByteVector): SignedJwt =
     throw new UnsupportedOperationException()
 
   def copy(
             header: JwtHeader = jwt.header,
             payload: JwtPayload = jwt.payload,
-            signature: Array[Byte] = signature
+            signature: ByteVector = signature
           ): SignedJwt = SignedJwt(
     header = header,
     payload = payload,
@@ -31,20 +32,24 @@ final case class SignedJwt(
 
   def withPayload(payload: JwtPayload): SignedJwt = copy(payload = payload)
 
-  def withSignature(signature: Array[Byte]): SignedJwt = copy(signature = signature)
+  def withSignature(signature: ByteVector): SignedJwt = copy(signature = signature)
 
   def modifyHeader(f: JwtHeader => JwtHeader): SignedJwt = withHeader(f(header))
 
   def modifyPayload(f: JwtPayload => JwtPayload): SignedJwt = withPayload(f(payload))
 
-  def modifySignature(f: Array[Byte] => Array[Byte]): SignedJwt = withSignature(f(signature))
+  def modifySignature(f: ByteVector => ByteVector): SignedJwt = withSignature(f(signature))
 
   def reencode: SignedJwt = copy(
     header = header.reencode,
     payload = payload.reencode
   )
 
-  def encode: String = s"${jwt.encode}.${encodeBase64Url(signature)}"
+  def encode: String = {
+    val encodedJwt = jwt.encode
+    if (signature.isEmpty) encodedJwt
+    else s"$encodedJwt.${encodeBase64Url(signature.toArrayUnsafe)}"
+  }
 
   def verify[F[_] : Monad](jwtVerifier: JwtVerifier[F]): F[Either[Throwable, Jwt]] =
     jwtVerifier.verify(this).map(_.as(jwt))
@@ -54,7 +59,7 @@ object SignedJwt {
   def apply(
              header: JwtHeader,
              payload: JwtPayload,
-             signature: Array[Byte]
+             signature: ByteVector
            ): SignedJwt = SignedJwt(
     jwt = Jwt(
       header,
@@ -71,16 +76,21 @@ object SignedJwt {
   def decodeComponents(headerBase64: String, payloadBase64: String, signatureBase64: String): Either[Throwable, SignedJwt] =
     for {
       jwt <- Jwt.decodeComponents(headerBase64, payloadBase64)
-      signature <- decodeBase64Url(signatureBase64)
+      signature <-
+        if (signatureBase64.isEmpty) Right(ByteVector.empty)
+        else decodeBase64Url(signatureBase64).map(ByteVector.view)
     } yield SignedJwt(
       jwt = jwt,
       signature = signature
     )
 
   def decode(string: String): Either[Throwable, SignedJwt] = {
-    string.split('.').toList match {
+    string.split("\\.", -1).toList match {
       case headerBase64 +: payloadBase64 +: signatureBase64 +: Nil =>
         decodeComponents(headerBase64, payloadBase64, signatureBase64)
+
+      case headerBase64 +: payloadBase64 +: Nil =>
+        decodeComponents(headerBase64, payloadBase64, "")
 
       case _ =>
         Left(new IllegalArgumentException("must be of format <header>.<payload>.<signature>"))
