@@ -16,6 +16,7 @@ val V = new {
   val munit = "1.0.2"
   val munitCatsEffect = "2.0.0"
   val scalaLogging = "3.9.5"
+  val scodecBits = "1.2.1"
   val tapir = "1.11.4"
 }
 
@@ -92,6 +93,7 @@ lazy val core = projectMatrix.in(file("modules/core"))
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-generic" % V.circe,
       "io.circe" %%% "circe-parser" % V.circe,
+      "org.scodec" %%% "scodec-bits" % V.scodecBits,
       "org.typelevel" %%% "cats-effect" % V.catsEffect,
     ),
   )

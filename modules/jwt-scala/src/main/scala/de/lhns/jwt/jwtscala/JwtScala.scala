@@ -8,6 +8,7 @@ import de.lhns.jwt.JwtValidationException.JwtInvalidSignatureException
 import de.lhns.jwt.JwtVerifier.basicVerifier
 import de.lhns.jwt._
 import pdi.jwt.JwtUtils
+import scodec.bits.ByteVector
 
 import java.nio.charset.StandardCharsets
 import java.security.cert.{CertPath, PKIXParameters}
@@ -18,22 +19,22 @@ object JwtScala {
   def hmacSigner[F[_] : Sync](algorithm: JwtHmacAlgorithm, key: SecretKey): JwtSigner[F] =
     JwtSigner.delay[F] { jwt =>
       val jwtAlg = jwt.modifyHeader(_.withAlgorithm(Some(algorithm)))
-      val signature = JwtUtils.sign(
+      val signature = ByteVector.view(JwtUtils.sign(
         jwtAlg.encode.getBytes(StandardCharsets.UTF_8),
         key,
         jwtHmacAlgorithm(algorithm)
-      )
+      ))
       SignedJwt(jwtAlg, signature)
     }
 
   def asymmetricSigner[F[_] : Sync](algorithm: JwtAsymmetricAlgorithm, key: PrivateKey): JwtSigner[F] =
     JwtSigner.delay[F] { jwt =>
       val jwtAlg = jwt.modifyHeader(_.withAlgorithm(Some(algorithm)))
-      val signature = JwtUtils.sign(
+      val signature = ByteVector.view(JwtUtils.sign(
         jwtAlg.encode.getBytes(StandardCharsets.UTF_8),
         key,
         jwtAsymmetricAlgorithm(algorithm)
-      )
+      ))
       SignedJwt(jwtAlg, signature)
     }
 
@@ -49,7 +50,7 @@ object JwtScala {
       JwtVerifier.delay[F] { signedJwt =>
         val verified = JwtUtils.verify(
           signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
-          signedJwt.signature,
+          signedJwt.signature.toArrayUnsafe,
           key,
           jwtHmacAlgorithm(signedJwt.header.algorithm match {
             case Some(algorithm: JwtHmacAlgorithm) => algorithm
@@ -68,7 +69,7 @@ object JwtScala {
       JwtVerifier.delay[F] { signedJwt =>
         val verified = JwtUtils.verify(
           signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
-          signedJwt.signature,
+          signedJwt.signature.toArrayUnsafe,
           key,
           jwtAsymmetricAlgorithm(signedJwt.header.algorithm match {
             case Some(algorithm: JwtAsymmetricAlgorithm) => algorithm
