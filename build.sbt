@@ -15,6 +15,7 @@ val V = new {
   val logbackClassic = "1.5.8"
   val munit = "1.0.2"
   val munitCatsEffect = "2.0.0"
+  val scalaJavaTime = "2.6.0"
   val scalaLogging = "3.9.5"
   val scodecBits = "1.2.1"
   val tapir = "1.11.5"
@@ -98,7 +99,13 @@ lazy val core = projectMatrix.in(file("modules/core"))
     ),
   )
   .jvmPlatform(scalaVersions)
-  .jsPlatform(scalaVersions)
+  .jsPlatform(
+    scalaVersions,
+    libraryDependencies ++= Seq(
+      "io.github.cquiroz" %%% "scala-java-time" % V.scalaJavaTime % Test,
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % V.scalaJavaTime % Test,
+    )
+  )
 
 lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
   .dependsOn(core)
