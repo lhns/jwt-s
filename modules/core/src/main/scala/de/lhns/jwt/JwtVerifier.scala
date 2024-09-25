@@ -38,14 +38,14 @@ object JwtVerifier {
 
   def basicVerifier[F[_] : Monad : Clock](
                                            algorithms: Seq[JwtAlgorithm],
-                                           options: JwtValidationOptions
+                                           options: JwtValidationOptions = JwtValidationOptions.default
                                          ): JwtVerifier[F] =
     JwtVerifier { signedJwt =>
       implicitly[Clock[F]].realTime.map { now =>
         Either.catchOnly[JwtValidationException] {
           validateRequired(signedJwt.payload, options)
           validateTiming(signedJwt.payload, Instant.ofEpochMilli(now.toMillis), options)
-          validateAlgorithm(signedJwt.header, algorithms)
+          validateAlgorithm(signedJwt.header, algorithms, options)
         }
       }
     }
@@ -65,16 +65,21 @@ object JwtVerifier {
 
     if (options.validateExpiration)
       payload.expiration
-        .filterNot(expiration => now.isBefore(expiration.plusMillis(leewayMillis)))
+        .filterNot(expiration => now.isBefore(expiration.plusMillis(leewayMillis))) // fail if current time is not before exp + leeway
         .foreach(expiration => throw new JwtExpirationException(expiration))
 
     if (options.validateNotBefore)
       payload.notBefore
-        .filter(notBefore => now.isAfter(notBefore.minusMillis(leewayMillis)))
+        .filter(notBefore => now.isBefore(notBefore.minusMillis(leewayMillis))) // fail if current time is before nbf - leeway
         .foreach(notBefore => throw new JwtNotBeforeException(notBefore))
   }
 
-  private def validateAlgorithm(header: JwtHeader, algorithms: Seq[JwtAlgorithm]): Unit =
-    if (!header.algorithm.exists(algorithms.contains))
+  private def validateAlgorithm(header: JwtHeader, algorithms: Seq[JwtAlgorithm], options: JwtValidationOptions): Unit = {
+    def isEmptyAlgorithmValid = !options.requireAlgorithm && header.algorithm.isEmpty
+
+    def isAlgorithmValid = header.algorithm.exists(algorithms.contains)
+
+    if (!(isEmptyAlgorithmValid || isAlgorithmValid))
       throw new JwtInvalidAlgorithmException(header.algorithm)
+  }
 }
