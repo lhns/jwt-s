@@ -20,7 +20,7 @@ class TapirSuite extends CatsEffectSuite {
     .serverLogicPure(jwt => _ => Right("hello world"))
 
   def testToken(token: String): IO[String] = {
-    val routes = Http4sServerInterpreter[IO].toRoutes(testEndpoint)
+    val routes = Http4sServerInterpreter[IO]().toRoutes(testEndpoint)
     routes(Request[IO]().putHeaders(Authorization(Token(AuthScheme.Bearer, token)))).foldF(IO(""))(_.as[String])
   }
 
