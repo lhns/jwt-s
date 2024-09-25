@@ -108,7 +108,7 @@ lazy val core = projectMatrix.in(file("modules/core"))
   )
 
 lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name := "jwt-s-jwt-scala",
@@ -121,7 +121,7 @@ lazy val moduleJwtScala = projectMatrix.in(file("modules/jwt-scala"))
   .jvmPlatform(scalaVersions)
 
 lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name := "jwt-s-http4s",
@@ -134,7 +134,7 @@ lazy val moduleHttp4s = projectMatrix.in(file("modules/http4s"))
   .jsPlatform(scalaVersions)
 
 lazy val moduleTapir = projectMatrix.in(file("modules/tapir"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings)
   .settings(
     name := "jwt-s-tapir",
