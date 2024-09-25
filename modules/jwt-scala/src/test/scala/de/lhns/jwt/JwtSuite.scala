@@ -41,6 +41,18 @@ class JwtSuite extends CatsEffectSuite {
       assertEquals(obtained.reencode, signedJwt.jwt)
   }
 
+  test("invalid hmac".fail) {
+    val secret: Array[Byte] = Random.nextBytes(20)
+    val secretKey: SecretKey = new SecretKeySpec(secret, "HmacSHA256")
+    for {
+      signedJwt <- jwt.sign[IO](hmacSigner(JwtAlgorithm.HS256, secretKey))
+      invalidJwt = signedJwt.modifySignature(_.dropRight(1))
+      encoded = invalidJwt.encode
+      decodedJwt = SignedJwt.decode(encoded).toTry.get
+      obtainedOrError <- decodedJwt.verify[IO](hmacVerifier(secretKey, algorithms = Seq(JwtAlgorithm.HS256)))
+    } yield obtainedOrError.toTry.get
+  }
+
   private def generateRsaKeypair(keySize: Int): KeyPair = {
     val keyGen = KeyPairGenerator.getInstance("RSA")
     keyGen.initialize(keySize)
