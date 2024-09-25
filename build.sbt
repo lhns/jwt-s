@@ -136,5 +136,10 @@ lazy val moduleTapir = projectMatrix.in(file("modules/tapir"))
       "com.softwaremill.sttp.tapir" %%% "tapir-core" % V.tapir,
     ),
   )
-  .jvmPlatform(scalaVersions)
+  .jvmPlatform(
+    scalaVersions,
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % V.tapir % Test,
+    )
+  )
   .jsPlatform(scalaVersions)
