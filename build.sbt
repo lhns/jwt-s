@@ -8,17 +8,17 @@ name := (core.projectRefs.head / name).value
 val V = new {
   val betterMonadicFor = "0.3.1"
   val bouncyCastle = "1.80"
-  val catsEffect = "3.5.7"
-  val circe = "0.14.10"
+  val catsEffect = "3.6.0"
+  val circe = "0.14.12"
   val http4s = "0.23.30"
-  val jwtScala = "10.0.1"
+  val jwtScala = "10.0.4"
   val logbackClassic = "1.5.18"
   val munit = "1.0.4"
-  val munitCatsEffect = "2.0.0"
+  val munitCatsEffect = "2.1.0"
   val scalaJavaTime = "2.6.0"
   val scalaLogging = "3.9.5"
   val scodecBits = "1.2.1"
-  val tapir = "1.11.13"
+  val tapir = "1.11.21"
 }
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
