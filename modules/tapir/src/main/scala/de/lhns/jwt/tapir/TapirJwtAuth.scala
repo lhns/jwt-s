@@ -1,6 +1,7 @@
 package de.lhns.jwt.tapir
 
 import cats.Monad
+import cats.data.EitherT
 import cats.effect.Sync
 import cats.syntax.all._
 import de.lhns.jwt.{JwtVerifier, SignedJwt}
@@ -25,12 +26,18 @@ object TapirJwtAuth {
   val jwtAuth: EndpointInput.Auth[SignedJwt, AuthType.Http] =
     auth.bearer[SignedJwt]().description(jwtDescription)
 
+  def jwtSecurityLogicF[F[_] : Monad, E](
+                                          jwtVerifier: JwtVerifier[F],
+                                          handleError: Throwable => F[E]
+                                        ): SignedJwt => F[Either[E, SignedJwt]] = { jwt =>
+    EitherT(jwt.verify(jwtVerifier)).leftSemiflatMap(handleError).as(jwt).value
+  }
+
   def jwtSecurityLogic[F[_] : Monad, E](
                                          jwtVerifier: JwtVerifier[F],
                                          handleError: Throwable => E
-                                       ): SignedJwt => F[Either[E, SignedJwt]] = { jwt =>
-    jwt.verify(jwtVerifier).map(_.leftMap(handleError).as(jwt))
-  }
+                                       ): SignedJwt => F[Either[E, SignedJwt]] =
+    jwtSecurityLogicF(jwtVerifier, error => Monad[F].pure(handleError(error)))
 
   implicit class EndpointOps[I, E, O, R](val endpoint: Endpoint[Unit, I, E, O, R]) extends AnyVal {
     def jwtSecurity[F[_] : Sync](jwtVerifier: JwtVerifier[F])(handleError: Throwable => E): PartialServerEndpoint[SignedJwt, SignedJwt, I, E, O, R, F] =
