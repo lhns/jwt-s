@@ -40,6 +40,13 @@ object TapirJwtAuth {
     jwtSecurityLogicF(jwtVerifier, error => Monad[F].pure(handleError(error)))
 
   implicit class EndpointOps[I, E, O, R](val endpoint: Endpoint[Unit, I, E, O, R]) extends AnyVal {
+    def jwtSecurityF[F[_] : Sync](jwtVerifier: JwtVerifier[F])(handleError: Throwable => F[E]): PartialServerEndpoint[SignedJwt, SignedJwt, I, E, O, R, F] =
+      endpoint
+        .securityIn(jwtAuth)
+        .serverSecurityLogic[SignedJwt, F](
+          jwtSecurityLogicF[F, E](jwtVerifier, handleError)
+        )
+
     def jwtSecurity[F[_] : Sync](jwtVerifier: JwtVerifier[F])(handleError: Throwable => E): PartialServerEndpoint[SignedJwt, SignedJwt, I, E, O, R, F] =
       endpoint
         .securityIn(jwtAuth)
