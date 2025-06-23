@@ -3,6 +3,7 @@ lazy val scalaVersions = Seq("3.3.6", "2.13.16")
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / organization := "de.lhns"
+ThisBuild / version := (core.projectRefs.head / version).value
 name := (core.projectRefs.head / name).value
 
 val V = new {
@@ -60,7 +61,7 @@ lazy val commonSettings: SettingsDefinition = Def.settings(
 
   publishTo := sonatypePublishToBundle.value,
 
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeCredentialHost := Sonatype.sonatypeCentralHost,
 
   credentials ++= (for {
     username <- sys.env.get("SONATYPE_USERNAME")
