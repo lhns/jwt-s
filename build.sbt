@@ -18,7 +18,7 @@ val V = new {
   val munitCatsEffect = "2.1.0"
   val scalaJavaTime = "2.6.0"
   val scalaLogging = "3.9.5"
-  val scodecBits = "1.2.1"
+  val scodecBits = "1.2.4"
   val tapir = "1.11.36"
 }
 
