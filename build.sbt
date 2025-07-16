@@ -19,7 +19,7 @@ val V = new {
   val scalaJavaTime = "2.6.0"
   val scalaLogging = "3.9.5"
   val scodecBits = "1.2.1"
-  val tapir = "1.11.34"
+  val tapir = "1.11.36"
 }
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
