@@ -1,4 +1,4 @@
-lazy val scalaVersions = Seq("3.3.6", "2.13.16")
+lazy val scalaVersions = Seq("3.3.7", "2.13.16")
 
 ThisBuild / scalaVersion := scalaVersions.head
 ThisBuild / versionScheme := Some("early-semver")
@@ -8,18 +8,18 @@ name := (core.projectRefs.head / name).value
 
 val V = new {
   val betterMonadicFor = "0.3.1"
-  val bouncyCastle = "1.81"
+  val bouncyCastle = "1.82"
   val catsEffect = "3.6.3"
-  val circe = "0.14.14"
+  val circe = "0.14.15"
   val http4s = "0.23.32"
-  val jwtScala = "11.0.2"
+  val jwtScala = "11.0.3"
   val logbackClassic = "1.5.18"
-  val munit = "1.1.1"
+  val munit = "1.2.1"
   val munitCatsEffect = "2.1.0"
   val scalaJavaTime = "2.6.0"
   val scalaLogging = "3.9.5"
   val scodecBits = "1.2.4"
-  val tapir = "1.11.40"
+  val tapir = "1.11.49"
 }
 
 lazy val commonSettings: SettingsDefinition = Def.settings(
