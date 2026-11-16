@@ -78,7 +78,7 @@ object JwtVerifier {
   private def validateRequired(payload: JwtPayload, options: JwtValidationOptions): Unit = {
     if (options.requireIssuer && payload.issuer.isEmpty) throw new JwtEmptyIssuerException()
     if (options.requireSubject && payload.subject.isEmpty) throw new JwtEmptySubjectException()
-    if (options.requireAudience && payload.audiences.isEmpty) throw new JwtEmptyAudienceException()
+    if (options.requireAudience && payload.audiences.forall(_.isEmpty)) throw new JwtEmptyAudienceException()
     if (options.requireExpiration && payload.expiration.isEmpty) throw new JwtEmptyExpirationException()
     if (options.requireNotBefore && payload.notBefore.isEmpty) throw new JwtEmptyNotBeforeException()
     if (options.requireIssuedAt && payload.issuedAt.isEmpty) throw new JwtEmptyIssuedAtException()

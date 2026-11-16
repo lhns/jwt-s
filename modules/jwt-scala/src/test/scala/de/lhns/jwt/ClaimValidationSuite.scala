@@ -90,6 +90,12 @@ class ClaimValidationSuite extends CatsEffectSuite {
     )
   }
 
+  test("empty aud array does not satisfy requireAudience") {
+    assertRejectedWith[JwtEmptyAudienceException](
+      verify(hmacToken("""{"aud":[]}"""), JwtValidationOptions(requireAudience = true))
+    )
+  }
+
   test("expectedAudience rejects missing aud") {
     assertRejectedWith[JwtInvalidAudienceException](
       verify(hmacToken("{}"), JwtValidationOptions(expectedAudience = Some("a")))
