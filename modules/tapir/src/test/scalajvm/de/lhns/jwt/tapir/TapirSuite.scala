@@ -37,4 +37,15 @@ class TapirSuite extends CatsEffectSuite {
       assertEquals(response, "Invalid value for: header Authorization")
     }
   }
+
+  test("decode error does not contain the token") {
+    val token = "secret-token"
+    signedJwtCodec.decode(List(token)) match {
+      case DecodeResult.Error(original, error) =>
+        assert(!original.contains(token))
+        assert(!String.valueOf(error.getMessage).contains(token))
+      case other =>
+        fail(s"expected DecodeResult.Error but got $other")
+    }
+  }
 }

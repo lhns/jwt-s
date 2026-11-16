@@ -12,13 +12,16 @@ import sttp.tapir.{Codec, CodecFormat, DecodeResult, Endpoint, EndpointInput, Sc
 object TapirJwtAuth {
   private val jwtDescription = "JSON Web Token"
 
+  private val redactedOriginal = "<redacted jwt>"
+
   implicit val signedJwtSchema: Schema[SignedJwt] =
     Schema.string[SignedJwt].format("jwt").description(jwtDescription)
 
   implicit val signedJwtCodec: Codec[List[String], SignedJwt, CodecFormat.TextPlain] =
     implicitly[Codec[List[String], String, CodecFormat.TextPlain]]
       .mapDecode(string => SignedJwt.decode(string) match {
-        case Left(error) => DecodeResult.Error(string, error)
+        // never pass the token as `original`: tapir's default server log prints it
+        case Left(error) => DecodeResult.Error(redactedOriginal, error)
         case Right(jwt) => DecodeResult.Value(jwt)
       })(_.encode)
       .schema(signedJwtSchema)
