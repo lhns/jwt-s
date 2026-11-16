@@ -13,7 +13,10 @@ case class JwtValidationOptions(
                                  requireJwtId: Boolean = false,
                                  validateExpiration: Boolean = true,
                                  validateNotBefore: Boolean = true,
-                                 leeway: FiniteDuration = Duration.Zero
+                                 leeway: FiniteDuration = Duration.Zero,
+                                 expectedIssuer: Option[String] = None,
+                                 expectedAudience: Option[String] = None,
+                                 acceptedTypes: Set[String] = Set("JWT")
                                )
 
 object JwtValidationOptions {

@@ -114,8 +114,8 @@ class VerifierRejectionSuite extends CatsEffectSuite {
     assertRejected(io)
   }
 
-  test("aud as array with requireAudience") {
+  test("aud as number with requireAudience") {
     val verifier = hmacVerifier[IO](secretKey, options = JwtValidationOptions(requireAudience = true))
-    assertRejected(hmacToken("""{"aud":["x"]}""").verify[IO](verifier))
+    assertRejected(hmacToken("""{"aud":1}""").verify[IO](verifier))
   }
 }

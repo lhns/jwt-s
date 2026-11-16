@@ -173,6 +173,10 @@ object Jwt {
 
     def withAudience(audience: Option[String]): Self = withClaim("aud", audience)
 
+    /** The `aud` claim, which RFC 7519 allows to be either a single string or an array of strings. */
+    lazy val audiences: Option[Seq[String]] =
+      claims.get("aud").map(_.as(Decoder[Seq[String]].or(Decoder[String].map(Seq(_)))).toTry.get)
+
     lazy val expiration: Option[Instant] = claim[Long]("exp").map(Instant.ofEpochSecond)
 
     def withExpiration(expiration: Option[Instant]): Self = withClaim("exp", expiration.map(_.getEpochSecond))
@@ -244,7 +248,6 @@ object Jwt {
       payloadString <- Either.catchNonFatal(new String(payloadBytes, StandardCharsets.UTF_8))
       header <- io.circe.parser.decode[JwtHeader](headerString)
       payload <- io.circe.parser.decode[JwtPayload](payloadString)
-      _ <- header.typOption.filter(_ == "JWT").toRight(new IllegalArgumentException("typ must be `JWT`"))
     } yield Jwt(
       header = header.withEncoded(headerBase64),
       payload = payload.withEncoded(payloadBase64)
