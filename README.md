@@ -20,5 +20,28 @@ libraryDependencies ++= Seq(
 )
 ```
 
+## Certificate chain (x5c) verification
+
+`certPathVerifier` validates the `x5c` header chain against a trust store and verifies the signature with the leaf's key.
+
+- Use a dedicated trust store containing only your own CA. Never use the JVM default `cacerts`: anyone holding a publicly trusted TLS certificate could then mint tokens.
+- Restrict the accepted leaf certificate with `setTargetCertConstraints`, otherwise any certificate issued by a trusted CA is accepted:
+
+```scala
+import java.security.cert.X509CertSelector
+
+val verifier = JwtScala.certPathVerifier[IO](
+  keyStore,
+  pkixParameters = { p =>
+    p.setRevocationEnabled(false)
+    val selector = new X509CertSelector()
+    selector.setSubject("CN=my-issuer,O=Example")
+    p.setTargetCertConstraints(selector)
+  }
+)
+```
+
+- Revocation checking is off by default (`defaultPkixParameters`). Enable it with `p.setRevocationEnabled(true)` (and configure CRL/OCSP as needed); note that it may perform blocking network I/O.
+
 ## License
 This project uses the Apache 2.0 License. See the file called LICENSE.

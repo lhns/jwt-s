@@ -4,7 +4,7 @@ import cats.effect.Sync
 import cats.syntax.all._
 import de.lhns.jwt.JwtAlgorithm._
 import de.lhns.jwt.JwtCertPath.defaultPkixParameters
-import de.lhns.jwt.JwtValidationException.JwtInvalidSignatureException
+import de.lhns.jwt.JwtValidationException.{JwtInvalidAlgorithmException, JwtInvalidSignatureException}
 import de.lhns.jwt.JwtVerifier.basicVerifier
 import de.lhns.jwt._
 import pdi.jwt.JwtUtils
@@ -48,16 +48,21 @@ object JwtScala {
                                ): JwtVerifier[F] =
     basicVerifier[F](algorithms, options) |+|
       JwtVerifier.delay[F] { signedJwt =>
-        val verified = JwtUtils.verify(
-          signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
-          signedJwt.signature.toArrayUnsafe,
-          key,
-          jwtHmacAlgorithm(signedJwt.header.algorithm match {
-            case Some(algorithm: JwtHmacAlgorithm) => algorithm
-            case _ => throw new IllegalStateException()
-          })
-        )
-        Either.cond(verified, (), new JwtInvalidSignatureException())
+        signedJwt.header.algorithm match {
+          case Some(algorithm: JwtHmacAlgorithm) =>
+            Either.catchNonFatal(JwtUtils.verify(
+              signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
+              signedJwt.signature.toArrayUnsafe,
+              key,
+              jwtHmacAlgorithm(algorithm)
+            )).fold(
+              e => Left(new JwtInvalidSignatureException(e)),
+              verified => Either.cond(verified, (), new JwtInvalidSignatureException())
+            )
+
+          case algorithm =>
+            Left(new JwtInvalidAlgorithmException(algorithm))
+        }
       }
 
   def asymmetricVerifier[F[_] : Sync](
@@ -67,16 +72,21 @@ object JwtScala {
                                      ): JwtVerifier[F] =
     basicVerifier[F](algorithms, options) |+|
       JwtVerifier.delay[F] { signedJwt =>
-        val verified = JwtUtils.verify(
-          signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
-          signedJwt.signature.toArrayUnsafe,
-          key,
-          jwtAsymmetricAlgorithm(signedJwt.header.algorithm match {
-            case Some(algorithm: JwtAsymmetricAlgorithm) => algorithm
-            case _ => throw new IllegalStateException()
-          })
-        )
-        Either.cond(verified, (), new JwtInvalidSignatureException())
+        signedJwt.header.algorithm match {
+          case Some(algorithm: JwtAsymmetricAlgorithm) =>
+            Either.catchNonFatal(JwtUtils.verify(
+              signedJwt.jwt.encode.getBytes(StandardCharsets.UTF_8),
+              signedJwt.signature.toArrayUnsafe,
+              key,
+              jwtAsymmetricAlgorithm(algorithm)
+            )).fold(
+              e => Left(new JwtInvalidSignatureException(e)),
+              verified => Either.cond(verified, (), new JwtInvalidSignatureException())
+            )
+
+          case algorithm =>
+            Left(new JwtInvalidAlgorithmException(algorithm))
+        }
       }
 
   def certPathVerifier[F[_] : Sync](

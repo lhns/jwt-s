@@ -11,6 +11,12 @@ object JwtValidationException {
 
   class JwtEmptyIssuerException extends JwtValidationException("The token does not contain an issuer.")
 
+  class JwtInvalidIssuerException(issuer: Option[String]) extends JwtValidationException(s"The token has an unexpected issuer: ${issuer.getOrElse("<none>")}")
+
+  class JwtInvalidAudienceException(audiences: Option[Seq[String]]) extends JwtValidationException(s"The token has an unexpected audience: ${audiences.fold("<none>")(_.mkString(", "))}")
+
+  class JwtInvalidTypeException(typ: Option[String]) extends JwtValidationException(s"The token has an unexpected type: ${typ.getOrElse("<none>")}")
+
   class JwtEmptySubjectException extends JwtValidationException("The token does not contain a subject.")
 
   class JwtEmptyAudienceException extends JwtValidationException("The token does not contain an audience.")
@@ -27,5 +33,7 @@ object JwtValidationException {
 
   class JwtNotBeforeException(notBefore: Instant) extends JwtValidationException(s"The token will only be valid after ${notBefore.atZone(ZoneId.systemDefault())}")
 
-  class JwtInvalidSignatureException extends JwtValidationException("The token signature is not valid.")
+  class JwtInvalidSignatureException(cause: Throwable) extends JwtValidationException("The token signature is not valid.", cause) {
+    def this() = this(null)
+  }
 }
