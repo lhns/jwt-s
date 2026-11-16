@@ -4,7 +4,7 @@ import cats.Monad
 import cats.syntax.all._
 
 import java.security.cert._
-import java.security.{InvalidAlgorithmParameterException, KeyStore, PublicKey}
+import java.security.{KeyStore, PublicKey}
 
 object JwtCertPath {
   def verifier[F[_] : Monad](
@@ -12,16 +12,26 @@ object JwtCertPath {
                               verifier: PublicKey => JwtVerifier[F],
                               pkixParameters: PKIXParameters => Unit = defaultPkixParameters
                             ): JwtVerifier[F] = JwtVerifier[F] { signedJwt =>
-    signedJwt.header.x509CertificateChain
-      .map(validateCertPath(_, keyStore, pkixParameters)) match {
-      case Some(Right(result)) =>
-        verifier(result.getPublicKey).verify(signedJwt)
-
-      case Some(Left(throwable)) =>
+    Either.catchNonFatal(
+      signedJwt.header.x509CertificateChain
+        .map(certPath =>
+          if (certPath.getCertificates.isEmpty) Left(new CertPathValidatorException("x5c claim must not be empty"))
+          else validateCertPath(certPath, keyStore, pkixParameters)
+        )
+    ) match {
+      case Left(throwable) =>
         Monad[F].pure(Left(throwable))
 
-      case None =>
-        Monad[F].pure(Left(new IllegalArgumentException("x5c claim required for cert validation")))
+      case Right(result) => result match {
+        case Some(Right(result)) =>
+          verifier(result.getPublicKey).verify(signedJwt)
+
+        case Some(Left(throwable)) =>
+          Monad[F].pure(Left(throwable))
+
+        case None =>
+          Monad[F].pure(Left(new IllegalArgumentException("x5c claim required for cert validation")))
+      }
     }
   }
 
@@ -39,15 +49,19 @@ object JwtCertPath {
                               ): Either[CertPathValidatorException, PKIXCertPathValidatorResult] = {
     val validator = CertPathValidator.getInstance("PKIX")
     Either
-      .catchOnly[InvalidAlgorithmParameterException] {
-        new PKIXParameters(keyStore)
+      .catchNonFatal {
+        val params = new PKIXParameters(keyStore)
+        pkixParameters(params)
+        params
       }
       .leftMap(new CertPathValidatorException(_))
       .flatMap { params =>
-        pkixParameters(params)
-        Either.catchOnly[CertPathValidatorException] {
-          validator.validate(certPath, params).asInstanceOf[PKIXCertPathValidatorResult]
-        }
+        Either
+          .catchNonFatal(validator.validate(certPath, params).asInstanceOf[PKIXCertPathValidatorResult])
+          .leftMap {
+            case e: CertPathValidatorException => e
+            case e => new CertPathValidatorException(e)
+          }
       }
   }
 }

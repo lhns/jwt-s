@@ -14,6 +14,7 @@ sealed trait JwtVerifier[F[_]] {
 }
 
 object JwtVerifier {
+  /** `empty` accepts every token: it is the identity for "all verifiers must pass". */
   implicit def monoid[F[_] : Monad]: Monoid[JwtVerifier[F]] = new Monoid[JwtVerifier[F]] {
     override def empty: JwtVerifier[F] = new JwtVerifier[F] {
       override def verify(signedJwt: SignedJwt): F[Either[Throwable, Unit]] =
@@ -36,16 +37,24 @@ object JwtVerifier {
       Sync[F].delay(verifier(signedJwt))
   }
 
+  /**
+    * Checks claims (required claims, expiration, not-before) and the algorithm only.
+    * It performs NO signature verification; combine it with a signature verifier.
+    * Any failure, including malformed claims, is returned as a `Left` of a [[JwtValidationException]].
+    */
   def basicVerifier[F[_] : Monad : Clock](
                                            algorithms: Seq[JwtAlgorithm],
                                            options: JwtValidationOptions = JwtValidationOptions.default
                                          ): JwtVerifier[F] =
     JwtVerifier { signedJwt =>
       implicitly[Clock[F]].realTime.map { now =>
-        Either.catchOnly[JwtValidationException] {
+        Either.catchNonFatal {
           validateRequired(signedJwt.payload, options)
           validateTiming(signedJwt.payload, Instant.ofEpochMilli(now.toMillis), options)
           validateAlgorithm(signedJwt.header, algorithms, options)
+        }.leftMap {
+          case e: JwtValidationException => e
+          case e => new JwtValidationException(s"The token is malformed: ${e.getMessage}", e)
         }
       }
     }

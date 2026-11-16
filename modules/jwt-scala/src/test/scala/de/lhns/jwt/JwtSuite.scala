@@ -11,7 +11,7 @@ import org.bouncycastle.cert.jcajce.{JcaX509CertificateConverter, JcaX509v3Certi
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
 import java.math.BigInteger
-import java.security.cert.{Certificate, CertificateFactory, X509Certificate}
+import java.security.cert.{Certificate, CertificateFactory, X509CertSelector, X509Certificate}
 import java.security.{KeyPair, KeyPairGenerator, KeyStore}
 import java.time.{Instant, OffsetDateTime}
 import java.util.{Base64, Date}
@@ -133,5 +133,38 @@ class JwtSuite extends CatsEffectSuite {
       obtained = obtainedOrError.toTry.get
     } yield
       assertEquals(obtained.reencode, signedJwt.jwt)
+  }
+
+  private def leafConstraintResult(verifierSubject: String): IO[Either[Throwable, Jwt]] = {
+    val cert = generateCertificate(
+      keyPair = keyPair,
+      issuer = new X500Name("C=DE"),
+      serial = new BigInteger("0"),
+      notBefore = Instant.now,
+      notAfter = OffsetDateTime.now.plusYears(1).toInstant,
+      subject = new X500Name("C=DE")
+    )
+    val certPath = CertificateFactory.getInstance("X.509").generateCertPath(java.util.List.of(cert))
+    val verifier = certPathVerifier[IO](
+      keyStoreFromCertificates(Seq(cert)),
+      pkixParameters = { p =>
+        p.setRevocationEnabled(false)
+        val selector = new X509CertSelector()
+        selector.setSubject(verifierSubject)
+        p.setTargetCertConstraints(selector)
+      }
+    )
+    for {
+      signedJwt <- jwt.sign(certPathSigner[IO](JwtAlgorithm.RS512, keyPair.getPrivate, certPath))
+      result <- signedJwt.verify[IO](verifier)
+    } yield result
+  }
+
+  test("cert path leaf constraint accepts matching subject") {
+    leafConstraintResult("C=DE").map(result => assert(result.isRight, result))
+  }
+
+  test("cert path leaf constraint rejects other subject") {
+    leafConstraintResult("C=FR").map(result => assert(result.isLeft, result))
   }
 }

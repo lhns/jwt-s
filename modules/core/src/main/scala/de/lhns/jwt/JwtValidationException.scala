@@ -27,5 +27,7 @@ object JwtValidationException {
 
   class JwtNotBeforeException(notBefore: Instant) extends JwtValidationException(s"The token will only be valid after ${notBefore.atZone(ZoneId.systemDefault())}")
 
-  class JwtInvalidSignatureException extends JwtValidationException("The token signature is not valid.")
+  class JwtInvalidSignatureException(cause: Throwable) extends JwtValidationException("The token signature is not valid.", cause) {
+    def this() = this(null)
+  }
 }
