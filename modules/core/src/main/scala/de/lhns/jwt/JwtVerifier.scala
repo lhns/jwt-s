@@ -49,7 +49,9 @@ object JwtVerifier {
     JwtVerifier { signedJwt =>
       implicitly[Clock[F]].realTime.map { now =>
         Either.catchNonFatal {
+          validateType(signedJwt.header, options)
           validateRequired(signedJwt.payload, options)
+          validateExpected(signedJwt.payload, options)
           validateTiming(signedJwt.payload, Instant.ofEpochMilli(now.toMillis), options)
           validateAlgorithm(signedJwt.header, algorithms, options)
         }.leftMap {
@@ -59,10 +61,24 @@ object JwtVerifier {
       }
     }
 
+  private def validateType(header: JwtHeader, options: JwtValidationOptions): Unit = {
+    val typ = header.claim[String]("typ")
+    if (!typ.exists(t => options.acceptedTypes.exists(_.equalsIgnoreCase(t)))) throw new JwtInvalidTypeException(typ)
+  }
+
+  private def validateExpected(payload: JwtPayload, options: JwtValidationOptions): Unit = {
+    options.expectedIssuer.foreach { expected =>
+      if (!payload.issuer.contains(expected)) throw new JwtInvalidIssuerException(payload.issuer)
+    }
+    options.expectedAudience.foreach { expected =>
+      if (!payload.audiences.exists(_.contains(expected))) throw new JwtInvalidAudienceException(payload.audiences)
+    }
+  }
+
   private def validateRequired(payload: JwtPayload, options: JwtValidationOptions): Unit = {
     if (options.requireIssuer && payload.issuer.isEmpty) throw new JwtEmptyIssuerException()
     if (options.requireSubject && payload.subject.isEmpty) throw new JwtEmptySubjectException()
-    if (options.requireAudience && payload.audience.isEmpty) throw new JwtEmptyAudienceException()
+    if (options.requireAudience && payload.audiences.isEmpty) throw new JwtEmptyAudienceException()
     if (options.requireExpiration && payload.expiration.isEmpty) throw new JwtEmptyExpirationException()
     if (options.requireNotBefore && payload.notBefore.isEmpty) throw new JwtEmptyNotBeforeException()
     if (options.requireIssuedAt && payload.issuedAt.isEmpty) throw new JwtEmptyIssuedAtException()
