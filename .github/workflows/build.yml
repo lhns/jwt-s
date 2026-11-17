@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'sbt'
-      - uses: sbt/setup-sbt@d059c39de700f4cc5cb64f9f56577315e44a984e # v1.5.5
+      - uses: sbt/setup-sbt@67d461eba2c4753196c230e02da850757ba4775e # v1.5.14
       - name: Test
         env:
           CI_VERSION: ${{ github.ref }}
