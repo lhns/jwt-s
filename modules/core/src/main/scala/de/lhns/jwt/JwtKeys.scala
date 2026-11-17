@@ -54,8 +54,14 @@ object JwtKeys {
     }
   }
 
+  private val Utf8Bom = Array[Byte](0xEF.toByte, 0xBB.toByte, 0xBF.toByte)
+
+  // JDK 17 does not recognise a PEM header behind a UTF-8 BOM.
+  private def stripBom(bytes: Array[Byte]): Array[Byte] =
+    if (bytes.startsWith(Utf8Bom)) bytes.drop(Utf8Bom.length) else bytes
+
   private def certificates(bytes: Array[Byte]): Either[Throwable, List[java.security.cert.Certificate]] =
-    attempt(CertificateFactory.getInstance("X.509").generateCertificates(new ByteArrayInputStream(bytes)).asScala.toList)
+    attempt(CertificateFactory.getInstance("X.509").generateCertificates(new ByteArrayInputStream(stripBom(bytes))).asScala.toList)
       .left.map(e => new IllegalArgumentException("Invalid certificate data: " + e.getClass.getSimpleName, e))
       .flatMap(certs => Either.cond(certs.nonEmpty, certs, new IllegalArgumentException("No certificates found")))
 
