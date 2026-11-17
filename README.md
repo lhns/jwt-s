@@ -57,8 +57,9 @@ val trustStore = JwtKeys.trustStore(Files.readAllBytes(Paths.get("ca.pem")))
 ```
 
 - Private keys must be unencrypted PKCS#8 (`BEGIN PRIVATE KEY`, RSA or EC). Convert others with `openssl pkcs8 -topk8 -nocrypt -in key.pem -out key-pkcs8.pem`.
+- `certPath` and `trustStore` take certificates only (a file that also contains a private key block is rejected).
 - `certPath` keeps the input order: put the leaf certificate first.
-- `trustStore` puts every certificate of the input into a new in-memory store for `certPathVerifier`; empty input is an error.
+- `trustStore` puts every certificate of the input into a new in-memory store for `certPathVerifier`; empty input is an error. It trusts every certificate in the input, a leaf included, so pass CA certificates only.
 
 ## License
 This project uses the Apache 2.0 License. See the file called LICENSE.

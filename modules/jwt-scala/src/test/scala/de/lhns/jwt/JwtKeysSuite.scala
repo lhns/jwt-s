@@ -117,4 +117,44 @@ class JwtKeysSuite extends CatsEffectSuite {
     assert(JwtKeys.privateKey(utf8(pem("ENCRYPTED PRIVATE KEY", rsa.getPrivate.getEncoded))).isLeft)
     assert(JwtKeys.privateKey(utf8("-----BEGIN PRIVATE KEY-----\n!!!notbase64\n-----END PRIVATE KEY-----")).isLeft)
   }
+
+  private val bom: Array[Byte] = Array(0xEF, 0xBB, 0xBF).map(_.toByte)
+
+  test("key pem with text preamble") {
+    roundTrip(rsa, utf8("Bag Attributes\n  localKeyID: 01\n" + pem("PRIVATE KEY", rsa.getPrivate.getEncoded)), JwtAlgorithm.RS256)
+  }
+
+  test("key pem with bom")(
+    roundTrip(ec, bom ++ utf8(pem("PRIVATE KEY", ec.getPrivate.getEncoded)), JwtAlgorithm.ES256)
+  )
+
+  private lazy val selfSigned = certificate(rsa, rsa, "CN=x", "CN=x", ca = true)
+
+  test("key and certificate in one file, both orders") {
+    val keyPem = pem("PRIVATE KEY", rsa.getPrivate.getEncoded)
+    val certPem = pem("CERTIFICATE", selfSigned.getEncoded)
+    for {
+      _ <- roundTrip(rsa, utf8(keyPem + certPem), JwtAlgorithm.RS256)
+      _ <- roundTrip(rsa, utf8(certPem + keyPem), JwtAlgorithm.RS256)
+    } yield ()
+  }
+
+  test("only non-pkcs8 blocks lists the labels") {
+    val message = leftMessage(
+      JwtKeys.privateKey(utf8(pem("CERTIFICATE", selfSigned.getEncoded))), "zzz"
+    )
+    assert(message.contains("CERTIFICATE") && message.contains("openssl pkcs8"), message)
+  }
+
+  test("bom-prefixed cert bundle") {
+    val bundle = bom ++ utf8(pem("CERTIFICATE", selfSigned.getEncoded))
+    assertEquals(JwtKeys.certPath(bundle).toTry.get.getCertificates.size, 1)
+    assertEquals(JwtKeys.trustStore(bundle).toTry.get.size, 1)
+  }
+
+  test("certPath and trustStore take certificates only: key block is rejected") {
+    val both = utf8(pem("PRIVATE KEY", rsa.getPrivate.getEncoded) + pem("CERTIFICATE", selfSigned.getEncoded))
+    assert(JwtKeys.certPath(both).isLeft)
+    assert(JwtKeys.trustStore(both).isLeft)
+  }
 }

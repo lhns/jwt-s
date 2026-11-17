@@ -11,8 +11,7 @@ import scala.util.control.NonFatal
 
 /** Helpers to load keys and certificates from PEM or DER bytes. Error messages never contain the input. */
 object JwtKeys {
-  private val PemMarker = "-----BEGIN"
-  private val PemLabel = """-----BEGIN ([A-Z0-9 ]+)-----""".r
+  private val PemBlock = """(?s)-----BEGIN ([A-Z0-9 ]+)-----(.*?)-----END \1-----""".r
   private val ConvertHint = "openssl pkcs8 -topk8 -nocrypt -in key.pem -out key-pkcs8.pem"
 
   private def attempt[A](f: => A): Either[Throwable, A] =
@@ -40,18 +39,16 @@ object JwtKeys {
 
   private def privateKeyDer(bytes: Array[Byte]): Either[Throwable, Array[Byte]] = {
     val text = new String(bytes, StandardCharsets.ISO_8859_1)
-      .dropWhile(c => c.isWhitespace || c == 'ï' || c == '»' || c == '¿')
-    if (!text.startsWith(PemMarker)) Right(bytes)
-    else PemLabel.findFirstMatchIn(text).map(_.group(1)) match {
-      case Some("PRIVATE KEY") =>
-        attempt {
-          val body = text.linesIterator.map(_.trim).filterNot(_.startsWith("-----")).mkString
-          Base64.getMimeDecoder.decode(body)
-        }.left.map(_ => new IllegalArgumentException("Invalid base64 in PEM private key"))
+    val blocks = PemBlock.findAllMatchIn(text).map(m => (m.group(1), m.group(2))).toList
+    if (blocks.isEmpty) Right(bytes)
+    else blocks.collectFirst { case ("PRIVATE KEY", body) => body } match {
+      case Some(body) =>
+        attempt(Base64.getMimeDecoder.decode(body))
+          .left.map(_ => new IllegalArgumentException("Invalid base64 in PEM private key"))
 
-      case label =>
+      case None =>
         Left(new IllegalArgumentException(
-          s"Unsupported PEM type${label.fold("")(l => s" '$l'")} (only PKCS#8 'PRIVATE KEY' is supported). " +
+          s"No PKCS#8 'PRIVATE KEY' block found (found: ${blocks.map(_._1).distinct.mkString(", ")}). " +
             s"Convert with: $ConvertHint"
         ))
     }
@@ -63,6 +60,7 @@ object JwtKeys {
       .flatMap(certs => Either.cond(certs.nonEmpty, certs, new IllegalArgumentException("No certificates found")))
 
   /** Loads a certificate chain from a PEM bundle or a single DER certificate.
+    * The input must contain certificates only (no private key blocks).
     * The order is that of the input; the leaf certificate must come first.
     */
   def certPath(bytes: Array[Byte]): Either[Throwable, CertPath] =
@@ -71,6 +69,7 @@ object JwtKeys {
     )
 
   /** Loads every certificate of a PEM bundle or a single DER certificate into a fresh in-memory trust store.
+    * Every certificate is trusted, a leaf included, so pass CA certificates only.
     * Intended for `JwtCertPath.verifier` / `JwtScala.certPathVerifier`.
     */
   def trustStore(bytes: Array[Byte]): Either[Throwable, KeyStore] =
