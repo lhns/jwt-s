@@ -43,5 +43,22 @@ val verifier = JwtScala.certPathVerifier[IO](
 
 - Revocation checking is off by default (`defaultPkixParameters`). Enable it with `p.setRevocationEnabled(true)` (and configure CRL/OCSP as needed); note that it may perform blocking network I/O.
 
+## Loading keys and certificates
+
+`JwtKeys` loads keys and certificates from PEM or DER bytes and returns `Either[Throwable, _]`:
+
+```scala
+import de.lhns.jwt.JwtKeys
+import java.nio.file.{Files, Paths}
+
+val privateKey = JwtKeys.privateKey(Files.readAllBytes(Paths.get("key.pem")))
+val certPath = JwtKeys.certPath(Files.readAllBytes(Paths.get("chain.pem")))
+val trustStore = JwtKeys.trustStore(Files.readAllBytes(Paths.get("ca.pem")))
+```
+
+- Private keys must be unencrypted PKCS#8 (`BEGIN PRIVATE KEY`, RSA or EC). Convert others with `openssl pkcs8 -topk8 -nocrypt -in key.pem -out key-pkcs8.pem`.
+- `certPath` keeps the input order: put the leaf certificate first.
+- `trustStore` puts every certificate of the input into a new in-memory store for `certPathVerifier`; empty input is an error.
+
 ## License
 This project uses the Apache 2.0 License. See the file called LICENSE.
